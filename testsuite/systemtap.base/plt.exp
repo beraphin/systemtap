@@ -1,0 +1,160 @@
+set test "plt"
+set script "$srcdir/$subdir/$test.stp"
+
+proc cleanup_handler { verbose } {
+    if { $verbose == 0 } {
+	catch {exec rm -f libplt1.so libplt2.so plt.x }
+    }
+}
+
+proc error_handler { res test message } {
+    global verbose
+    if { $res == 0 } {
+	verbose "$test $message" 2
+	fail "$test $message"
+	return 1
+    } elseif { $message != "" } {
+	pass $test
+	return 0
+    } else {
+	return 0
+    }
+}
+
+set ::result_string \
+{__cxa_finalize 2
+__libc_start_main 1
+__xpg_basename 1
+asctime 1
+asprintf 3
+basename2 1
+bsearch 3
+critters 1
+datetime 1
+find_critter 3
+fprintf 3
+fputs 3
+free 4
+localtime 1
+malloc 3
+memcpy 1
+open 2
+open2 1
+open3 1
+print_critter 32
+printf 38
+qsort 1
+register_printf_function 1
+savestring 1
+stpcpy 4
+strcmp 51
+strftime 2
+strlen 4
+time 1
+widgets 1
+xmalloc 2
+zenme 1}
+
+if {![installtest_p]} { untested $test; return }
+if {![plt_probes_p]} { untested $test; return }
+
+set exepath "./plt.x"
+
+
+set F additional_flags
+set common_flags "$F=-g $F=-Wno-deprecated-declarations $F=-Wno-format $F=-fno-builtin"
+set flags "$F=-I. $F=-shared $F=-fPIC $F=-DLIBPLT1 $common_flags"
+set res [target_compile $srcdir/$subdir/plt.c ./libplt1.so executable $flags ]
+if { [error_handler [expr {$res == ""}] "target_compile libplt1.so" ""] } { return }
+
+set flags "$F=-I. $F=-shared $F=-fPIC $F=-DLIBPLT2 $common_flags"
+set res [target_compile $srcdir/$subdir/plt.c ./libplt2.so executable $flags ]
+if { [error_handler [expr {$res == ""}] "target_compile libplt2.so" ""] } { return }
+
+set flags "$F=-Wl,-rpath,[pwd] $F=-L[pwd] $F=-lplt1 $F=-lplt2 $F=-DONLY_MAIN $common_flags"
+set res [target_compile $srcdir/$subdir/plt.c $exepath executable $flags ]
+if { [error_handler [expr {$res == ""}] "target_compile plt.x" ""] } { return }
+
+# test process.plt
+
+set pp {process("./plt.x").plt, process("./libplt1.so").plt, process("./libplt2.so").plt}
+stap_run3 "plt" "$script" "$pp" "noreturn" -c "$exepath >/dev/null"
+
+# test process.library.plt
+
+set pp {process("./plt.x").plt, process("./plt.x").library("libplt*").plt}
+stap_run3 "plt library" "$script" "$pp" "noreturn" -c "$exepath >/dev/null"
+
+# test process.library.plt prelinked
+
+set prelink_bin "/usr/sbin/prelink"
+if {[prelink_p]} {
+    if {![prelink libplt1.so 0x6400000]} {
+        fail "plt prelink libplt1.so"
+        untested "plt prelinked library"
+    } else {
+        pass "plt prelink libplt1.so"
+        set pp {process("./plt.x").plt, process("./plt.x").library("libplt*").plt}
+        stap_run3 "plt prelinked library" "$script" "$pp" "noreturn" -c "$exepath >/dev/null"
+    }
+} else {
+    untested "plt prelink libplt1.so"
+    untested "plt prelinked library"
+}
+
+# test .plt.return: .plt/.plt.return should cancel out
+set ::result_string \
+{__cxa_finalize 0
+__libc_start_main 0
+__xpg_basename 0
+asctime 0
+asprintf 0
+basename2 0
+bsearch 0
+critters 0
+datetime 0
+find_critter 0
+fprintf 0
+fputs 0
+free 0
+localtime 0
+malloc 0
+memcpy 0
+open 0
+open2 0
+open3 0
+print_critter 0
+printf 0
+qsort 0
+register_printf_function 0
+savestring 0
+stpcpy 0
+strcmp 0
+strftime 0
+strlen 0
+time 0
+widgets 0
+xmalloc 0
+zenme 0}
+
+# test process.plt.return
+
+set pp {process("./plt.x").plt, process("./libplt1.so").plt, process("./libplt2.so").plt}
+stap_run3 "plt.return" "$script" "$pp" "return" -c "$exepath >/dev/null"
+
+# test process.library.plt.return
+
+set pp {process("./plt.x").plt, process("./plt.x").library("libplt*").plt}
+stap_run3 "plt.return library" "$script" "$pp" "return" -c "$exepath >/dev/null"
+
+
+
+# test process.plt("glob")
+
+set ok 0
+set ::result_string {strcmp 51}
+set pp {process("./libplt2.so").plt("strcmp")}
+stap_run3 "plt glob" "$script" "$pp" "noreturn" -c "$exepath >/dev/null"
+
+
+cleanup_handler $verbose

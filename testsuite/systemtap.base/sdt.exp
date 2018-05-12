@@ -1,0 +1,138 @@
+set test "sdt"
+set result_string10 {_
+1
+1 2
+1 2 3
+1 2 3 4
+1 2 3 4 5
+1 2 3 4 5 6
+1 2 3 4 5 6 7
+1 2 3 4 5 6 7 8
+1 2 3 4 5 6 7 8 9
+1 2 3 4 5 6 7 8 9 10}
+set result_string12 {
+1 2 3 4 5 6 7 8 9 10 11
+1 2 3 4 5 6 7 8 9 10 11 12}
+
+set extra_flags {{additional_flags=-O2}
+    {additional_flags=-O3}
+    {additional_flags=-std=c89}
+    {additional_flags=-std=c99}
+    {additional_flags=-std=gnu99}
+    {c++ additional_flags=-std=c++98 additional_flags=-x additional_flags=c++}
+    {c++ additional_flags=-std=gnu++98 additional_flags=-x additional_flags=c++}
+    {c++ additional_flags=-std=c++0x additional_flags=-x additional_flags=c++}
+    {c++ additional_flags=-std=gnu++0x additional_flags=-x additional_flags=c++}
+}
+set extra_mssgs {-O2 -O3 c89 c99 gnu99 c++98 gnu++98 c++0x gnu++0x}
+set type_pedantics_idx {1 1 2 2 2 2 2 2 2} 
+set type_pedantics {{} additional_flags=-pedantic} ; # don't compile -O2 -O3 with -pedantic
+set type_pedantic_mssgs {{} -pedantic}
+
+set pbtype_flags {{""} {additional_flags=-DSTAP_SDT_V2}}
+set pbtype_mssgs {{uprobe} {V2_uprobe}}
+
+proc sdt_stap_run { TEST_NAME TEST_FILE FAIL args } {
+    foreach runtime [get_runtime_list] {
+	set full_test_name $TEST_NAME
+	if {$runtime != ""} {
+	    lappend full_test_name "($runtime)"
+	    set cmd [concat stap --runtime=$runtime $TEST_FILE $args]
+	} elseif {[uprobes_p]} {
+	    set cmd [concat stap $TEST_FILE $args]
+	} else {
+	    untested $full_test_name
+	    continue
+	}
+	send_log "executing: $cmd\n"
+	catch {eval exec $cmd} res
+
+	set skip 0
+	set n 0
+	set expected [split $::result_string "\n"]
+	foreach line [split $res "\n"] {
+	    if {![string equal $line [lindex $expected $n]]} {
+		$FAIL "$full_test_name"
+		send_log "line [expr $n + 1]: expected \"[lindex $expected $n]\"\n"
+		send_log "Got \"$line\"\n"
+		set skip 1
+		break
+	    }
+	    incr n
+	}
+	if {$skip != 0} {
+	    continue
+	}
+	if {[expr $n == [llength $expected]]} {
+	    pass "$full_test_name"
+	} else {
+	    $FAIL "$full_test_name"
+	    send_log "too few lines of output, got $n, expected [llength $expected]\n"
+	}
+    }
+}
+
+# Iterate pbtype_flags
+for {set p 0} {$p < [llength $pbtype_flags]} {incr p} {
+set pbtype_flag [lindex $pbtype_flags $p]
+set pbtype_mssg [lindex $pbtype_mssgs $p]
+
+# Iterate extra_flags, trying each with C and C++
+for {set i 0} {$i < [llength $extra_flags]} {incr i} {
+set extra_flag [lindex $extra_flags $i]
+set extra_mssg [lindex $extra_mssgs $i]
+set testprog "sdt.c.exe.$i"
+
+for {set j 0} {$j < [lindex $type_pedantics_idx $i]} {incr j} {
+set type_pedantic_mssg [lindex $type_pedantic_mssgs $j]
+
+set test_flags "additional_flags=-g"
+set test_flags "$test_flags [sdt_includes]"
+set test_flags "$test_flags additional_flags=-Wall"
+set test_flags "$test_flags additional_flags=-Wextra"
+set test_flags "$test_flags additional_flags=-Werror $pbtype_flag"
+
+set saveidx 0
+
+set res [target_compile $srcdir/$subdir/$test.c $testprog executable "$test_flags $extra_flag [lindex $type_pedantics $j]"]
+if { $res != "" } {
+    verbose "target_compile failed: $res" 2
+    # -std=gnu++0x and -std=c++0x are not universally accepted
+    if {[string first "unrecognized command line option" $res] == -1} {
+      fail "compiling $test.c $extra_mssg $type_pedantic_mssg $pbtype_mssg"
+    } else {
+      untested "compiling $test.c $extra_mssg $type_pedantic_mssg $pbtype_mssg"
+    }
+    untested "$test $extra_mssg $type_pedantic_mssg $pbtype_mssg"
+    continue
+} else {
+    pass "compiling $test.c $extra_mssg $type_pedantic_mssg $pbtype_mssg"
+}
+
+if {[installtest_p]} {
+    if {[regexp "^(ppc64|s390x)$" $::tcl_platform(machine)] \
+	    && [regexp "^(-O)" $extra_mssg]} {
+	# register name and constant is ambiguous in ppc/s390 asm syntax
+	# thus constant folding can throw the result off
+	set FAIL xfail
+    } else {
+	set FAIL fail
+    }
+    set ::result_string $result_string10
+    if { $pbtype_mssg == "uprobe" } {
+	append ::result_string $result_string12
+    }
+    sdt_stap_run "$test $extra_mssg $type_pedantic_mssg $pbtype_mssg" \
+	-w $FAIL $srcdir/$subdir/$test.stp $testprog -c ./$testprog
+} else {
+    untested "$test $extra_mssg $type_pedantic_mssg $pbtype_mssg"
+}
+catch {exec rm -f $testprog}
+
+
+} ; # type_pedantics_idx
+
+} ; # for {set i 0} {$i < [llength $extra_flags]}
+
+} ; # for {set i 0} {$i < [llength $pbtype_flags]}
+

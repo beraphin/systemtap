@@ -1,0 +1,36 @@
+<?xml version='1.0'?>
+<!DOCTYPE bookinfo PUBLIC "-//OASIS//DTD DocBook XML V4.5//EN" "http://www.oasis-open.org/docbook/xml/4.5/docbookx.dtd" [
+<!ENTITY % BOOK_ENTITIES SYSTEM "SystemTap_Beginners_Guide.ent"> %BOOK_ENTITIES;
+]>
+
+<bookinfo id="SystemTap_Beginners_Guide">
+	<title>SystemTap Beginners Guide</title>
+        <subtitle>Introduction to SystemTap</subtitle>
+        <!-- PRERELEASE -->
+	<edition>3.2</edition>
+
+	<productname>SystemTap</productname>
+        <!-- PRERELEASE -->
+	<productnumber>3.2</productnumber>
+
+	<pubsnumber>2</pubsnumber>
+	<abstract><para>This guide provides basic instructions on how to use SystemTap to monitor different subsystems of a Linux system in finer detail.</para></abstract>
+	<corpauthor>
+		<inlinemediaobject>
+			<imageobject>
+				<imagedata format='SVG' fileref="Common_Content/images/title_logo.svg" />
+			</imageobject>
+			<textobject><phrase>Logo</phrase></textobject>
+		</inlinemediaobject>
+	</corpauthor>
+	<copyright>
+		<year>&YEAR;</year>
+		<holder>&HOLDER;</holder>
+	</copyright>
+ 	<xi:include href="Legal_Notice.xml" xmlns:xi="http://www.w3.org/2001/XInclude" />
+<!-- <xi:include href="Common_Content/Legal_Notice.xml" xmlns:xi="http://www.w3.org/2001/XInclude"/>-->
+	<xi:include href="Author_Group.xml" xmlns:xi="http://www.w3.org/2001/XInclude" />
+</bookinfo>
+
+
+

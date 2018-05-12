@@ -1,0 +1,55 @@
+set test "strftime"
+if {![installtest_p]} { untested $test; return }
+
+# cleanup
+system "rm -f %*"
+
+foreach runtime [get_runtime_list] {
+    set test "strftime"
+    if {$runtime != ""} {
+	lappend test "($runtime)"
+    }
+
+    # check %S and %T
+    set format %%%S_%T
+    if {$runtime != ""} {
+	verbose -log {stap --runtime=$runtime -o $format -we {probe begin {println("hello");exit()}}}
+	catch { exec stap --runtime=$runtime -o $format -we {probe begin {println("hello");exit()}} } res
+    } else {
+	verbose -log {stap -o $format -we {probe begin {println("hello");exit()}}}
+	catch { exec stap -o $format -we {probe begin {println("hello");exit()}} } res
+    }
+    verbose -log $res
+
+    set file [glob -nocomplain -types f %\[0-9\]\[0-9\]_\[0-9\]\[0-9\]:\[0-9\]\[0-9\]:\[0-9\]\[0-9\]]
+
+    if {[llength $file] == 1} {
+	pass "$test (%S and %T)"
+    } else {
+	fail "$test (%S and %T)"
+    }
+
+    # check except for %S and %T
+    set format %%,%C,%Y,%y,%m,%d,%e,%F,%H,%I,%j,%k,%l,%M,%R,%u,%w
+
+    set date1 [exec date +$format]
+
+    # run stapio with strftime
+    if {$runtime != ""} {
+	verbose -log {stap --runtime=$runtime -o $format -we {probe begin {println("hello");exit()}}}
+	catch { exec stap --runtime=$runtime -o $format -we {probe begin {println("hello");exit()}} } res
+    } else {
+	verbose -log {stap -o $format -we {probe begin {println("hello");exit()}}}
+	catch { exec stap -o $format -we {probe begin {println("hello");exit()}} } res
+    }
+    verbose -log $res
+
+    if {[file exists $date1]} {
+	pass "$test (except %S and %T)"
+    } else {
+	fail "$test (except %S and %T)"
+    }
+
+    # cleanup
+    system "rm -f %*"
+}

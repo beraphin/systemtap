@@ -1,0 +1,22 @@
+# Test linear histogram
+
+set test "linear_under"
+set ::result_string {count=100
+sum=4950
+min=0
+max=99
+avg=49
+variance=5741
+value |-------------------------------------------------- count
+<1800 |@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ 100
+ 1800 |                                                     0
+ 1900 |                                                     0
+}
+
+foreach runtime [get_runtime_list] {
+    if {$runtime != ""} {
+	stap_run2 $srcdir/$subdir/$test.stp --runtime=$runtime -DMAXACTION=10000
+    } else {
+	stap_run2 $srcdir/$subdir/$test.stp -DMAXACTION=10000
+    }
+}

@@ -1,0 +1,16 @@
+# make sure that we don't overcatch -- return and next should be able to break
+# out of a try/catch block.  PR11664
+
+set test "overcatcher"
+set ::result_string {return
+next
+}
+
+foreach runtime [get_runtime_list] {
+    if {$runtime != ""} {
+	stap_run_exact "$test ($runtime)" $srcdir/$subdir/$test.stp \
+	    --runtime=$runtime
+    } else {
+	stap_run_exact $test $srcdir/$subdir/$test.stp
+    }
+}

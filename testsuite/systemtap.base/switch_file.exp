@@ -1,0 +1,26 @@
+set test "switch_file"
+if {![installtest_p]} { untested $test; return }
+
+# clean existing files
+catch {exec rm -f $test.out*}
+
+# run systemtap
+verbose -log "Running stap -vo $test.out -e {probe begin {switch_file(); exit()}}"
+catch {exec stap -vo $test.out -e {probe begin {switch_file(); exit()}} } res
+verbose -log "$res"
+
+# check output file
+if {[catch {exec rm $test.out}]} {
+  fail "$test (no output file)"
+  return -1
+} else {
+  pass "$test (output file)"
+}
+
+# check switched output file
+if {[catch {exec rm $test.out.1}]} {
+  fail "$test (failed to switch output file)"
+  return -1
+} else {
+  pass "$test (switch output file)"
+}

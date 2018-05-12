@@ -1,0 +1,22 @@
+# Test linear histogram
+
+set test "linear_over"
+set ::result_string {count=9000
+sum=49495500
+min=1000
+max=9999
+avg=5499
+variance=47241750
+value |-------------------------------------------------- count
+   90 |                                                      0
+  100 |                                                      0
+ >100 |@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ 9000
+}
+
+foreach runtime [get_runtime_list] {
+    if {$runtime != ""} {
+	stap_run2 $srcdir/$subdir/$test.stp --runtime=$runtime -DMAXACTION=10000
+    } else {
+	stap_run2 $srcdir/$subdir/$test.stp -DMAXACTION=10000
+    }
+}

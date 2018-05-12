@@ -1,0 +1,137 @@
+# Simple function to test that systemtap can generate instument a module
+# function, install it, and get some output.
+
+set test "kmodule"
+set test2 "kprobe_module"
+if {![installtest_p]} {
+    untested $test
+    return
+}
+
+set build_dir ""
+set uname [exec /bin/uname -r]
+
+proc build_and_install_module {} {
+    global build_dir
+    global srcdir subdir
+
+    # Create the build directory and populate it
+    if {[catch {exec mktemp -d staptestXXXXXX} build_dir]} {
+	verbose -log "Failed to create temporary directory: $build_dir"
+	return 0
+    }
+    catch {exec cp $srcdir/$subdir/stap_kmodule.c $build_dir/}
+    catch {exec cp -p $srcdir/$subdir/stap_kmodule.Makefile $build_dir/Makefile }
+
+    # Build the module
+    if {[catch {exec make -C $build_dir clean} res]} {
+	verbose -log "$res"
+	return 0
+    }
+    catch {exec make -C $build_dir} res
+    if {![file exists $build_dir/stap_kmodule.ko]} {
+	verbose -log "$res"
+	return 0
+    }
+    set res [as_root [list cp $build_dir/stap_kmodule.ko /lib/modules/$::uname/kernel/]]
+    if { $res != 0 } {
+	verbose -log "$res"
+	return 0
+    }
+
+    # Install the module
+    set res [as_root [list /sbin/insmod $build_dir/stap_kmodule.ko]]
+    if {$res != 0} {
+	verbose -log "$res"
+	return 0
+    }
+    return 1
+}
+
+proc cleanup_module {} {
+    global build_dir
+    as_root [list /bin/rm -f /lib/modules/$::uname/kernel/stap_kmodule.ko]
+    as_root [list /sbin/rmmod stap_kmodule]
+    if {$build_dir != ""} {
+	catch { exec rm -rf $build_dir }
+    }
+}
+
+proc kmodule_load {} {
+    # Trigger the test module
+    if {[file exists /proc/stap_kmodule_cmd]} {
+	catch {exec echo 0 > /proc/stap_kmodule_cmd}
+	return 0
+    } else {
+	return 1
+    }
+}
+
+proc kmodule_load2 {} {
+    global build_dir
+
+    # Unload the test module (in case it was leftover from a previous
+    # run).
+    as_root [list /sbin/rmmod stap_kmodule]
+
+    # Load the test module
+    set res [as_root [list /sbin/insmod $build_dir/stap_kmodule.ko]]
+    if { $res != 0 } {
+	verbose -log "$res"
+	return 1
+    }
+
+    # Trigger the test module
+    if {[file exists /proc/stap_kmodule_cmd]} {
+	catch {exec echo 0 > /proc/stap_kmodule_cmd}
+	return 0
+    } else {
+	return 1
+    }
+
+    # Unload the test module
+    set res [as_root [list /sbin/rmmod stap_kmodule]]
+    if { $res != 0 } {
+	verbose -log "$res"
+	return 1
+    }
+}
+
+set output_string "count = 1\r\n"
+
+if {[build_and_install_module] == 0} {
+    verbose -log "BUILD FAILED"
+    fail "$test (could not build/install module)"
+    return
+} else {
+    pass "$test (built and installed module)"
+}
+
+# Test 'module("foo").function("bar")
+stap_run $test kmodule_load $output_string $srcdir/$subdir/$test.stp
+
+# Test 'kprobe.module("foo").function("bar")
+stap_run $test2 kmodule_load $output_string $srcdir/$subdir/$test2.stp
+
+# Now let's test and see if the same scripts work when the test module
+# is loaded *after* the systemtap script starts.
+set test_suffix "(loaded after)"
+if {![module_refresh_p]} {
+    untested "$subdir/$test.stp $test_suffix"
+    untested "$subdir/$test2.stp $test_suffix"
+    cleanup_module
+    return
+}
+as_root [list /sbin/rmmod stap_kmodule]
+
+# Test 'module("foo").function("bar")
+set test_file "$subdir/$test.stp"
+stap_run "$test_file $test_suffix" kmodule_load2 \
+    $output_string $srcdir/$test_file
+
+# Test 'kprobe.module("foo").function("bar")
+set test_file "$subdir/$test2.stp"
+stap_run "$test_file $test_suffix" kmodule_load2 \
+    $output_string $srcdir/$test_file
+
+cleanup_module

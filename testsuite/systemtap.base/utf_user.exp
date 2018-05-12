@@ -1,0 +1,34 @@
+set test "utf_user"
+
+if {! [installtest_p]} { untested "$test"; return }
+if {! [uprobes_p]} { untested "$test"; return }
+
+set utf16_chars {73 74 61 70 7F 80 391 3A9 7FF 800 263A FFFF D800 DC00 D83D DE08 DBFF DFFF}
+set utf32_chars {73 74 61 70 7F 80 391 3A9 7FF 800 263A FFFF 10000 1F608 10FFFF}
+set raw_result {stapΑΩ߿ࠀ☺￿𐀀😈􏿿}
+set quoted_result {"stap\177\u0080\u0391\u03A9\u07FF\u0800\u263A\uFFFF\U00010000\U0001F608\U0010FFFF"}
+
+set ::result_string "$utf16_chars :\n$raw_result\n$quoted_result\n$utf32_chars :\n$raw_result\n$quoted_result"
+
+set srcfile "$srcdir/$subdir/$test.c"
+set stpfile "$srcdir/$subdir/$test.stp"
+set exefile "[pwd]/$test.exe"
+set test_flags "additional_flags=-g"
+set res [target_compile "$srcfile" "$exefile" executable "$test_flags"]
+if { $res != "" } {
+  verbose "target_compile failed: $res" 2
+  fail "$test compile"
+  untested "$test"
+  return
+} else {
+  pass "$test compile"
+}
+
+foreach runtime [get_runtime_list] {
+  if {$runtime != ""} {
+    stap_run3 "$test $runtime" "$stpfile" -c "$exefile" --runtime=$runtime
+  } else {
+    stap_run3 $test "$stpfile" -c "$exefile"
+  }
+}
+if { $verbose == 0 } { catch { exec rm -f $exefile } }

@@ -1,0 +1,30 @@
+# Test that the stapsh mechanism is working over a unix socket
+# - ensure that stapsh and socat are in our process hierarchy
+
+set test "stapsh-unix"
+set ::result_string {begin
+^ stapio
+^ stapsh
+^ socat
+timer.s(1)
+end}
+
+if {![installtest_p] || [catch {exec test -f /usr/bin/socat}]} {
+    untested "$test"
+} else {
+    # use a fixed name, to enable simple systemtap.sum comparability
+    set sock /tmp/$test.sock
+    set socat_pid [spawn /usr/bin/socat UNIX-LISTEN:$sock EXEC:stapsh]
+    set socat_sid $spawn_id
+
+    # give time for socat to get fully set up
+    sleep 1
+
+    stap_run2 $srcdir/$subdir/$test.stp --remote=unix:$sock
+
+    set spawn_id $socat_sid 
+    kill -INT $socat_pid 5
+    catch {close}
+    catch {wait}
+}
+

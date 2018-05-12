@@ -1,0 +1,9 @@
+#! stap -p4
+
+probe begin {
+	print_backtrace()
+	printf("%s\n", backtrace())
+	printf("%s\n", sprint_backtrace())
+	printf("%s\n", caller())
+	printf("%d\n", caller_addr())
+}

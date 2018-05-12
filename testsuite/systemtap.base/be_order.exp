@@ -1,0 +1,11 @@
+# Simple function to test that ordering of begin/end probes works
+
+set test "be_order"
+foreach runtime [get_runtime_list] {
+    if {$runtime != ""} {
+	stap_run $test no_load $all_pass_string \
+	    --runtime=$runtime $srcdir/$subdir/$test.stp 
+    } else {
+	stap_run $test no_load $all_pass_string $srcdir/$subdir/$test.stp 
+    }
+}

@@ -1,0 +1,15 @@
+# Simple function to test that systemtap divide by 0 doesn't kill the machine
+
+set test "div0"
+
+set output_string {ERROR: division by 0 near[^\r\n]+\r\n}
+
+foreach runtime [get_runtime_list] {
+    if {$runtime != ""} {
+	stap_run $test no_load $output_string \
+	    --runtime=$runtime $srcdir/$subdir/$test.stp
+    } else {
+	stap_run $test no_load $output_string $srcdir/$subdir/$test.stp
+
+    }
+}

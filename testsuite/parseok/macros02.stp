@@ -1,0 +1,3 @@
+#! stap -p1
+
+@define foo %( begin %) probe @foo { print ("Hello, World!") }

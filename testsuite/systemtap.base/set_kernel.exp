@@ -1,0 +1,5 @@
+# Check that the set_kernel_* functions work correctly.
+
+set test "set_kernel"
+
+stap_run $test no_load $all_pass_string -g $srcdir/$subdir/$test.stp

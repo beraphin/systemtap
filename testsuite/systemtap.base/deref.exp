@@ -1,0 +1,11 @@
+# Check that the deref mechanisms work correctly.
+
+set test "deref"
+foreach runtime [get_runtime_list] {
+    if {$runtime != ""} {
+	stap_run $test no_load $all_pass_string -g \
+	    --runtime=$runtime $srcdir/$subdir/$test.stp
+    } else {
+	stap_run $test no_load $all_pass_string -g $srcdir/$subdir/$test.stp
+    }
+}

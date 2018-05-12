@@ -1,0 +1,283 @@
+<?xml version='1.0'?>
+<!DOCTYPE section PUBLIC "-//OASIS//DTD DocBook XML V4.5//EN" "http://www.oasis-open.org/docbook/xml/4.5/docbookx.dtd" [
+]>
+
+
+<section id="using-setup">
+  <title>Installation and Setup</title>
+  <remark>
+    required packages, installation thru yum, repos (?); possibly, a script to install all required packages
+  </remark>
+
+  <remark>
+    notes in ~/Desktop/SystemTap/aug21chatlog and ~/Desktop/SystemTap/noted_wcohenmeeting
+  </remark>
+<indexterm>
+<primary>Installation</primary>
+<secondary>Setup and Installation</secondary>
+</indexterm>
+
+<indexterm>
+<primary>Setup and Installation</primary>
+</indexterm>
+  <para>To deploy SystemTap, install the SystemTap packages along
+    with the corresponding set of <package>-devel</package>,
+    <package>-debuginfo</package>, and <package>-debuginfo-common</package>
+    packages for your kernel. If your system has multiple kernels installed and
+    you intend to use SystemTap on more than one of them, also
+    install the <package>-devel</package> and <package>-debuginfo</package>
+    packages for <emphasis>each</emphasis> of those kernel versions.
+  </para>
+
+  <para>The following sections discuss the installation procedures in greater detail.
+  </para>
+
+  <important>
+    <title>Important</title> <para>Many users confuse
+    <package>-debuginfo</package> with <package>-debug</package>. Remember
+    that the deployment of SystemTap requires the installation of the
+    <package>-debuginfo</package> package of the kernel, not the
+    <package>-debug</package> version of the kernel.</para>
+  </important>
+
+<section id="installproper">
+    <title>Installing SystemTap</title>
+
+    <para>To deploy SystemTap, install the following RPM packages:
+    </para>
+<indexterm>
+<primary>Installation</primary>
+<secondary>systemtap package</secondary>
+</indexterm>
+
+<indexterm>
+<primary>systemtap package</primary>
+</indexterm>
+
+
+<!-- next 2 indexterms for systemtap-runtime package -->
+
+<indexterm>
+<primary>Installation</primary>
+<secondary>systemtap-runtime package</secondary>
+</indexterm>
+
+<indexterm>
+<primary>systemtap-runtime package</primary>
+</indexterm>
+    <itemizedlist>
+      <listitem><para><package>systemtap</package></para></listitem>
+      <listitem><para><package>systemtap-runtime</package></para></listitem>
+    </itemizedlist>
+
+    <para>
+    To do so, run the following command as root:
+    </para>
+
+    <screen><command>yum install systemtap systemtap-runtime</command></screen>
+
+    <para>
+    Note that before using SystemTap, you still need to install the required
+    kernel information packages. On modern systems, run the following command
+    as root to install these packages:
+    </para>
+
+    <screen><command>stap-prep</command></screen>
+
+    <para>
+    If this command does not work, try manual installation as described below.
+    </para>
+
+</section>
+
+<section id="install-kinfo">
+    <title>Installing Required Kernel Information Packages Manually</title>
+<indexterm>
+<primary>Installation</primary>
+<secondary>required packages</secondary>
+</indexterm>
+
+<indexterm>
+<primary>required packages</primary>
+</indexterm>
+<indexterm>
+	<primary>packages required to run SystemTap</primary>
+</indexterm>
+<indexterm>
+	<primary>RPMs required to run SystemTap</primary>
+</indexterm>
+<indexterm>
+	<primary>Installation</primary>
+	<secondary>kernel information packages</secondary>
+</indexterm>
+
+<indexterm>
+	<primary>kernel information packages</primary>
+</indexterm>
+    <para>
+	    SystemTap needs information about the kernel in order to place instrumentation in it (in other words, probe it). This
+	    information also allows SystemTap to generate the code for the instrumentation.
+    </para>
+    <para>
+	    The required information is contained
+	    in the matching <package>-devel</package>, <package>-debuginfo</package>, and <package>-debuginfo-common</package>
+	    packages for your kernel. The necessary <package>-devel</package> and <package>-debuginfo</package> packages for the ordinary
+	    "vanilla" kernel are as follows:
+    </para>
+
+    <itemizedlist>
+      <listitem><para><package>kernel-debuginfo</package></para></listitem>
+      <listitem><para><package>kernel-debuginfo-common</package></para></listitem>
+      <listitem><para><package>kernel-devel</package></para></listitem>
+    </itemizedlist>
+
+	<para>
+	    Likewise, the necessary packages for the PAE kernel are
+	    <package>kernel-PAE-debuginfo</package>, <package>kernel-PAE-debuginfo-common</package>,
+	    and <package>kernel-PAE-devel</package>.
+	</para>
+
+<indexterm>
+<primary>Installation</primary>
+<secondary>kernel version, determining the</secondary>
+</indexterm>
+
+<indexterm>
+<primary>kernel version, determining the</primary>
+</indexterm>
+
+<indexterm>
+<primary>determining the kernel version</primary>
+</indexterm>
+<indexterm>
+	<primary>uname -r</primary>
+</indexterm>
+    <para> To determine what kernel your system is currently using, use:</para>
+
+<screen>uname -r</screen>
+
+    <para>
+	    For example, if you intend to use SystemTap on kernel version <emphasis>2.6.18-53.el5</emphasis> on an <emphasis>i686</emphasis> machine,
+	    download and install the following RPM packages:
+    </para>
+
+    <itemizedlist>
+      <listitem><para><package>kernel-debuginfo-2.6.18-53.1.13.el5.i686.rpm</package></para></listitem>
+      <listitem><para><package>kernel-debuginfo-common-2.6.18-53.1.13.el5.i686.rpm</package></para></listitem>
+      <listitem><para><package>kernel-devel-2.6.18-53.1.13.el5.i686.rpm</package></para></listitem>
+    </itemizedlist>
+
+   <important>
+      <title>Important</title>
+
+      <para>
+	The version, variant, and architecture of the <package>-devel</package>, <package>-debuginfo</package> and
+	<package>-debuginfo-common</package> packages must match the kernel you wish to probe with SystemTap <emphasis>exactly</emphasis>.
+      </para>
+    </important>
+
+
+    <para>
+	    The easiest way to install the required kernel information
+	    packages is through <command>yum install</command> and
+	    <command>debuginfo-install</command> commands.
+	    The <command>debuginfo-install</command> command is included with
+	    later versions of the <package>yum-utils</package>
+	    package (for example, version 1.1.10) and also requires
+	    an appropriate <command>yum</command> repository from
+	    which to download and install
+	    <package>-debuginfo</package> and <package>-debuginfo-common</package>
+	    packages.  You can install the required
+	    <package>-devel</package>,
+	    <package>-debuginfo</package>, and
+	    <package>-debuginfo-common</package> packages for your
+	    kernel.
+   </para>
+
+
+<!-- next 2 indexterms for rhelchannels.sh -->
+
+   <para>
+     When the appropriate software repositories are enabled,
+     install the corresponding packages for a specific kernel
+     with the following commands:
+   </para>
+
+<screen><command>yum install <replaceable>kernelname</replaceable>-devel-<replaceable>version</replaceable></command>
+<command>debuginfo-install <replaceable>kernelname</replaceable>-<replaceable>version</replaceable></command></screen>
+
+<para>
+	Replace <replaceable>kernelname</replaceable> with the appropriate kernel variant name
+	(for example, <option>kernel-PAE</option>), and <replaceable>version</replaceable>
+	with the target kernel's version. For example, to install the required kernel information packages for
+	the <systemitem>kernel-PAE-2.6.18-53.1.13.el5</systemitem> kernel, run:
+</para>
+
+<screen><command>yum install kernel-PAE-devel-2.6.18-53.1.13.el5</command>
+<command>debuginfo-install kernel-PAE-2.6.18-53.1.13.el5</command></screen>
+
+    <para>
+Once you have manually downloaded the required packages to the machine, run the following command as root to install them:
+    </para>
+    <screen><command>rpm --force -ivh <replaceable>package_names</replaceable></command></screen>
+
+  </section>
+
+
+  <section id="testing">
+    <title>Initial Testing</title>
+<indexterm>
+<primary>Installation</primary>
+<secondary>initial testing</secondary>
+</indexterm>
+
+<indexterm>
+<primary>initial testing</primary>
+</indexterm>
+
+<indexterm>
+<primary>testing, initial</primary>
+</indexterm>
+    <para>If you are currently using the kernel you intend to probe with
+      SystemTap, you can immediately test whether the deployment was
+      successful. If not, you restart the system and load the appropriate
+      kernel.
+    </para>
+
+    <para>
+	    To start the test, run the following command:
+    </para>
+
+    <screen><command>stap -v -e 'probe vfs.read {printf("read performed\n"); exit()}'</command></screen>
+
+    <para>
+	    This command instructs SystemTap
+	    to print <computeroutput>read performed</computeroutput> and then exit
+	    properly once a virtual file system read is detected. If the SystemTap
+	    deployment was successful, it prints output similar to the
+	    following:
+    </para>
+<!--    <para>To start the test, run the command <command>stap -v -e 'probe vfs.read
+      {exit()}'</command>. This command simply instructs SystemTap to exit
+      properly once a virtual file system read is detected. If the SystemTap
+      deployment was successful, you should get output very similar to the
+      following:
+    </para>-->
+
+<screen>Pass 1: parsed user script and 45 library script(s) in 340usr/0sys/358real ms.
+Pass 2: analyzed script: 1 probe(s), 1 function(s), 0 embed(s), 0 global(s) in 290usr/260sys/568real ms.
+Pass 3: translated to C into "/tmp/stapiArgLX/stap_e5886fa50499994e6a87aacdc43cd392_399.c" in 490usr/430sys/938real ms.
+Pass 4: compiled C into "stap_e5886fa50499994e6a87aacdc43cd392_399.ko" in 3310usr/430sys/3714real ms.
+Pass 5: starting run.
+read performed
+Pass 5: run completed in 10usr/40sys/73real ms.</screen>
+
+    <para> The last three lines of the output (beginning with
+    <computeroutput>Pass 5</computeroutput>) indicate that SystemTap was able to
+    successfully create the instrumentation to probe the kernel, run the
+    instrumentation, detect the event being probed (in this case, a virtual file
+    system read), and execute a valid handler (print text then close it with no errors).
+    </para>
+
+  </section>
+</section>

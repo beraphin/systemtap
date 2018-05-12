@@ -1,0 +1,97 @@
+# PR14297-related testing
+set stap_path [file normalize $env(SYSTEMTAP_PATH)/stap]
+
+proc test_list { test input output_re } {
+    spawn stap -l $input
+    expect {
+	-timeout 180
+        -re $output_re { pass $test }
+        timeout { fail $test }
+        eof { fail $test }
+    }
+    catch { close }; catch { wait }
+}
+
+proc test_uprobes_list { test input output_re } {
+    if {[uprobes_p]} {
+        test_list $test $input $output_re
+    } else {
+        unsupported $test
+    }
+}
+
+proc test_plt_list { test input output_re } {
+    if {[plt_probes_p]} {
+        test_list $test $input $output_re
+    } else {
+        unsupported $test
+    }
+}
+
+test_plt_list plt-glob {process("stap").plt("re??")} \
+    "^process\\\(\"$stap_path\"\\\)\\\.plt\\\(\"read\"\\\)\r\n$"
+
+test_plt_list plt-glob2 {process("stap").plt("re*")} \
+    "^process\\\(\"$stap_path\"\\\)\\\.plt\\\(\"re\[a-zA-Z0-9_\]*\"\\\)\r\n"
+
+test_plt_list plt-non-glob {process("stap").plt("read")} \
+    "^process\\\(\"$stap_path\"\\\)\\\.plt\\\(\"read\"\\\)\r\n$"
+
+test_plt_list plt-glob-ret {process("stap").plt("re??").return} \
+    "^process\\\(\"$stap_path\"\\\)\\\.plt\\\(\"read\"\\\).return\r\n$"
+
+test_plt_list plt-glob2-ret {process("stap").plt("re*").return} \
+    "^process\\\(\"$stap_path\"\\\)\\\.plt\\\(\"re\[a-zA-Z0-9_\]*\"\\\).return\r\n"
+
+test_plt_list plt-non-glob-ret {process("stap").plt("read").return} \
+    "^process\\\(\"$stap_path\"\\\)\\\.plt\\\(\"read\"\\\).return\r\n$"
+
+test_uprobes_list mark-non-glob {process("stap").mark("pass5__end")} \
+    "^process\\\(\"$stap_path\"\\\)\\\.mark\\\(\"pass5__end\"\\\)\r\n$"
+
+test_uprobes_list mark-non-glob2 {process("stap").mark("pass5-end")} \
+    "^process\\\(\"$stap_path\"\\\)\\\.mark\\\(\"pass5__end\"\\\)\r\n$"
+
+test_uprobes_list mark-glob {process("stap").mark("pass[123456]__end")} \
+    "^process\\\(\"$stap_path\"\\\)\\\.mark\\\(\"pass\[123456\]__end\"\\\)\r\n"
+
+test_uprobes_list mark-glob2 {process("stap").mark("pass*__end")} \
+    "^process\\\(\"$stap_path\"\\\)\\\.mark\\\(\"pass\[0123456\]__end\"\\\)\r\n"
+
+test_list syscall-glob {syscall.rea*} \
+    {syscall.read\r\n}
+
+test_list syscall-noglob {syscall.read} \
+    {syscall.read\r\n}
+
+test_list init_once-glob {kernel.function("init_once*")} \
+    {kernel.function."init_once@fs/inode.c:\d+".\r\n}
+
+test_list init_once-noglob {kernel.function("init_once")} \
+    {kernel.function."init_once@fs/inode.c:\d+".\r\n}
+
+test_list begin-glob {begin*} \
+    {begin\r\n}
+
+test_list begin-noglob {begin} \
+    {begin\r\n}
+
+# This one is not so interesting, but we want to make sure the following test
+# statements are actually within an inline.
+#
+# PR18554: Originally, this test only looked for an inlined version of
+# copy_signal(). However, on 3.10.0-229.el7.ppc64, copy_signal() isn't
+# inlined. But there are other functions from within that same file -
+# like copy_files(), copy_flags(), copy_fs(), copy_io(), copy_mm(),
+# copy_process(), and copy_sighand() - that will (hopefully) have
+# inlined versions.
+test_list copy_signal-inline {kernel.function("copy_*@kernel/fork.c").inline} \
+    {kernel.function."copy_[^@]+@kernel/fork.c:\d+"..inline\r\n}
+
+# PR15587: make sure we have line numbers on statements of an inline function
+test_list copy_signal-statement {kernel.statement("copy_*@kernel/fork.c:*")} \
+    {kernel.statement."copy_[^@]+@kernel/fork.c:\d+".\r\n}
+
+# PR10208: ensure we can probe weak symbols
+test_uprobes_list function-weak {process("/lib*/libc.so.*").function("chmod")} \
+    {process.*.function."chmod".\r\n}

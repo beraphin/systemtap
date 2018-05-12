@@ -1,0 +1,75 @@
+# cache.exp
+
+# Since we need a clean cache directory, we'll use a temporary
+# systemtap directory and cache (add user name so make check and
+# sudo make installcheck don't clobber each others)
+set local_systemtap_dir [exec pwd]/.cache_test-[exec whoami]
+exec /bin/rm -rf $local_systemtap_dir
+if [info exists env(SYSTEMTAP_DIR)] {
+    set old_systemtap_dir $env(SYSTEMTAP_DIR)
+}
+set env(SYSTEMTAP_DIR) $local_systemtap_dir
+
+# Set up the scripts we'll use.
+set basic_script1 "\"probe begin { println(1) }\""
+set basic_script2 "\"probe begin, end { println(2) }\""
+set error_script "\"probe XbeginX { }\""
+set var_script1 {{probe begin { println(@var("jiffies")) }}}
+
+# Check basic functionality.  The 1st compilation of a script won't
+# be cached, the 2nd should be cached.
+cache_compile BASIC1 [F_UNCACHED_COMPILE] $basic_script1
+cache_compile BASIC2 [F_CACHED_COMPILE] $basic_script1
+
+# Adding in a macro definition should change the hash
+cache_compile OPTION1 [F_UNCACHED_COMPILE] $basic_script1 -DFOO=1
+cache_compile OPTION2 [F_CACHED_COMPILE] $basic_script1 -DFOO=1
+
+# Using '-b' (bulk/relayfs mode) should change the hash
+cache_compile BULK1 [F_UNCACHED_COMPILE] $basic_script1 -b
+cache_compile BULK2 [F_CACHED_COMPILE] $basic_script1 -b
+
+# Using '-t' (benchmark timing) should change the hash
+cache_compile TIMING1 [F_UNCACHED_COMPILE] $basic_script1 -t
+cache_compile TIMING2 [F_CACHED_COMPILE] $basic_script1 -t
+
+# Changing the runtime directory should change the hash
+set new_runtime [exec pwd]/.cache_test_runtime
+exec /bin/rm -f $new_runtime
+exec /bin/ln -s $env(SYSTEMTAP_RUNTIME) $new_runtime
+cache_compile RUNTIME1 [F_UNCACHED_COMPILE] $basic_script1 -R $new_runtime
+cache_compile RUNTIME2 [F_CACHED_COMPILE] $basic_script1 -R $new_runtime
+exec /bin/rm -f $new_runtime
+
+# Disable the cache with SYSTEMTAP_DIR
+set env(SYSTEMTAP_DIR) /dev/null
+cache_compile DISABLED1 [F_UNCACHED_COMPILE] $basic_script1
+cache_compile DISABLED2 [F_UNCACHED_COMPILE] $basic_script1
+set env(SYSTEMTAP_DIR) $local_systemtap_dir
+eval [list exec /bin/rm -f] [glob "stap_*.ko"]
+
+# Disable the cache with '-m'
+cache_compile MODNAM1 [F_UNCACHED_COMPILE] $basic_script1 -m modnam
+exec /bin/rm -f modnam.ko
+cache_compile MODNAM2 [F_UNCACHED_COMPILE] $basic_script1 -m modnam
+exec /bin/rm -f modnam.ko
+
+# Make sure scripts that don't actually compile don't get cached
+cache_compile ERROR1 [F_UNCACHED_NO_COMPILE] $error_script
+cache_compile ERROR2 [F_UNCACHED_NO_COMPILE] $error_script
+
+# Make sure basic stuff still works.
+cache_compile BASIC3 [F_UNCACHED_COMPILE] $basic_script2
+cache_compile BASIC4 [F_CACHED_COMPILE] $basic_script2
+
+# Make sure vardie_from_symtable caches correctly (PR18936)
+cache_compile VAR1 [F_UNCACHED_COMPILE] $var_script1
+cache_compile VAR2 [F_CACHED_COMPILE] $var_script1
+
+# Cleanup.
+exec /bin/rm -rf $local_systemtap_dir
+if [info exists old_systemtap_dir] {
+    set env(SYSTEMTAP_DIR) $old_systemtap_dir
+} else {
+    unset env(SYSTEMTAP_DIR)
+}

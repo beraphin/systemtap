@@ -1,0 +1,272 @@
+set test pthreadprobes
+if {! [installtest_p]} { untested $test; return }
+if {! [uprobes_p]} { untested "$test"; return }
+
+# compile the testcase
+catch {exec gcc -g -o $test $srcdir/$subdir/$test.c -lpthread -lrt} err
+if {$err != "" && [file exists $test]} then {
+     fail "$test compile $err"
+  } else {
+   # find the location of the pthread library
+   catch {exec /usr/bin/ldd $test | egrep {^\s*libpthread.so} | awk {{print $3}} } pthread
+}
+
+# First thing, do we have a version of glibc with the probes??
+set cmd [concat -L process(\"$pthread\").mark(\"pthread_create\")]
+if {[catch {exec stap $cmd } res2]} {
+   # can happen on systems without pthread probes in glibc, so don't complain
+   untested "$test"
+   return
+} else {
+   pass "$test"
+}
+
+# The "cond_timedwait" mark doesn't exist in some versions of glibc
+# (such as RHEL7 ppc64), so figure out if it exists in this
+# glibc. Notice that that probe is optional in the script below.
+set cmd [concat -L process(\"$pthread\").mark(\"cond_timedwait\")]
+set cond_timedwait_available 0
+if {![catch {exec stap $cmd } res2]} {
+   set cond_timedwait_available 1
+}
+
+# Now we exercise every probe available
+set script $srcdir/$subdir/$test.stp
+
+foreach runtime [get_runtime_list] {
+    set test_name $test
+    if {$runtime != ""} {
+	# Suppress warnings (-w) because dyninst can't place some probes, and the WARNINGs
+	# make tcl catch return non-zero.  This way we'll still get individual results.
+	verbose -log "Running: stap -w --runtime=$runtime $script $pthread -c ./$test"
+	set rc [catch {exec stap -w --runtime=$runtime $script $pthread -c ./$test } res3]
+	lappend test_name "($runtime)"
+    } else {
+	verbose -log "Running: stap $script $pthread -c ./$test"
+	set rc [catch {exec stap $script $pthread -c ./$test } res3]
+    }
+    verbose -log "$res3"
+
+    # error executing?
+    if {$rc} {
+	fail "$test_name (rc=$rc)"
+	exec rm -f $test
+	return
+    }
+    
+    set cond_broadcast_correct 0
+    set cond_destroy_correct 0
+    set cond_init_correct 0
+    set cond_signal_correct 0
+    set cond_timedwait_correct 0
+    set cond_wait_correct 0
+    set mutex_acquired_correct 0
+    set mutex_destroy_correct 0
+    set mutex_entry_correct 0
+    set mutex_init_correct 0
+    set mutex_release_correct 0
+    set mutex_timedlock_acquired_correct 0
+    set mutex_timedlock_entry_correct 0
+    set pthread_create_correct 0
+    set pthread_join_correct 0
+    set pthread_join_ret_correct 0
+    set pthread_start_correct 0
+    set rdlock_entry_correct 0
+    set rwlock_destroy_correct 0
+    set wrlock_entry_correct 0
+    
+    # make sure the numbers match
+    foreach line $res3 {
+	if {[regexp {cond_broadcast=[1-9]} $line]} {
+	    set cond_broadcast_correct 1
+	}
+	if  {[regexp "cond_destroy=0" $line]} {
+	    set cond_destroy_correct 1
+	}
+	if  {[regexp "cond_init=3" $line]} {
+	    set cond_init_correct 1
+	}
+	if  {[regexp {cond_signal=[1-9]} $line]} {
+	    set cond_signal_correct 1
+	}
+
+	# Handle optional 'cond_timedwait'.
+	if  {[regexp {cond_timedwait=([01])} $line matched sub1]} {
+	    if  {[expr $cond_timedwait_available && $sub1] \
+		     || [expr !$cond_timedwait_available && !$sub1]} {
+		set cond_timedwait_correct 1
+	    }
+	}
+
+	if  {[regexp {cond_wait=[1-9]} $line]} {
+	    set cond_wait_correct 1
+	}
+	if  {[regexp {mutex_acquired=([1-9][0-9]+)} $line]} {
+	    set mutex_acquired_correct 1
+	}
+	if  {[regexp "mutex_destroy=1" $line]} {
+	    set mutex_destroy_correct 1
+	}
+	if  {[regexp {mutex_entry=([1-9][0-9]+)} $line]} {
+	    set mutex_entry_correct 1
+	}
+	if  {[regexp "mutex_init=3" $line]} {
+	    set mutex_init_correct 1
+	}
+	if  {[regexp {mutex_release=([1-9][0-9]+)} $line]} {
+	    set mutex_release_correct 1
+	}
+	# pthread_mutex_timedlock is called with a timeout of 1 second in a 
+	# loop while the mutex is held by the other thread for about 5 seconds
+	# resulting in a couple of entries resulting in a ETIMEDOUT before it
+	# is actually acquired.  Expect 2 till 6 tries before success.
+	if  {[regexp {mutex_timedlock_entry=[2-6]} $line]} {
+	    set mutex_timedlock_entry_correct 1
+	}
+	if  {[regexp "mutex_timedlock_acquired=1" $line]} {
+	    set mutex_timedlock_acquired_correct 1
+	}
+	if  {[regexp "pthread_create=6" $line]} {
+	    set pthread_create_correct 1
+	}
+	if  {[regexp "pthread_join=4" $line]} {
+	    set pthread_join_correct 1
+	}
+	if  {[regexp "pthread_join_ret=4" $line]} {
+	    set pthread_join_ret_correct 1
+	}
+	if  {[regexp "pthread_start=6" $line]} {
+	    set pthread_start_correct 1
+	}
+	if  {[regexp {rdlock_entry=[1-9][0-9]*} $line]} {
+	    set rdlock_entry_correct 1
+	}
+	if  {[regexp "rwlock_destroy=0" $line]} {
+	    set rwlock_destroy_correct 1
+	}
+	if  {[regexp {wrlock_entry=[1-9]} $line]} {
+	    set wrlock_entry_correct 1
+	}
+    }
+    
+    if { $cond_broadcast_correct == 0 } { 
+	fail "$test_name cond_broadcast"
+    } else {
+	pass "$test_name cond_broadcast"
+    }
+    
+    if { $cond_destroy_correct == 0 } {
+	fail "$test_name cond_destroy"
+    } else {
+	pass "$test_name cond_destroy"
+    }
+    
+    if { $cond_init_correct == 0 } {
+	fail "$test_name cond_init"
+    } else {
+	pass "$test_name cond_init"
+    }
+    
+    if { $cond_signal_correct == 0 } {
+	fail "$test_name cond_signal"
+    } else {
+	pass "$test_name cond_signal"
+    }
+    
+    if { $cond_timedwait_correct == 0 } {
+	fail "$test_name cond_timedwait"
+    } else {
+	pass "$test_name cond_timedwait"
+    }
+    
+    if { $cond_wait_correct == 0 } {
+	fail "$test_name cond_wait"
+    } else {
+	pass "$test_name cond_wait"
+    }
+    
+    if { $mutex_acquired_correct == 0 } {
+	fail "$test_name mutex_acquired"
+    } else {
+	pass "$test_name mutex_acquired"
+    }
+    
+    if { $mutex_destroy_correct == 0 } {
+	fail "$test_name mutex_destroy"
+    } else {
+	pass "$test_name mutex_destroy"
+    }
+    
+    if { $mutex_entry_correct == 0 } {
+	fail "$test_name mutex_entry"
+    } else {
+	pass "$test_name mutex_entry"
+    }
+    
+    if { $mutex_init_correct == 0 } {
+	fail "$test_name mutex_init"
+    } else {
+	pass "$test_name mutex_init"
+    }
+    
+    if { $mutex_release_correct == 0 } {
+	fail "$test_name mutex_release"
+    } else {
+	pass "$test_name mutex_release"
+    }
+    
+    if { $mutex_timedlock_acquired_correct == 0 } {
+	fail "$test_name mutex_timedlock_acquired"
+    } else {
+	pass "$test_name mutex_timedlock_acquired"
+    }
+    
+    if { $mutex_timedlock_entry_correct == 0 } {
+	fail "$test_name mutex_timedlock_entry"
+    } else {
+	pass "$test_name mutex_timedlock_entry"
+    }
+    
+    if { $pthread_create_correct == 0 } {
+	fail "$test_name pthread_create"
+    } else {
+	pass "$test_name pthread_create"
+    }
+    
+    if { $pthread_join_correct == 0 } {
+	fail "$test_name pthread_join"
+    } else {
+	pass "$test_name pthread_join"
+    }
+    
+    if { $pthread_join_ret_correct == 0 } {
+	fail "$test_name pthread_join_ret"
+    } else {
+	pass "$test_name pthread_join_ret"
+    }
+    
+    if { $pthread_start_correct == 0 } {
+	fail "$test_name pthread_start"
+    } else {
+	pass "$test_name pthread_start"
+    }
+    
+    if { $rdlock_entry_correct == 0 } {
+	fail "$test_name rdlock_entry"
+    } else {
+	pass "$test_name rdlock_entry"
+    }
+    
+    if { $rwlock_destroy_correct == 0 } {
+	fail "$test_name rwlock_destroy"
+    } else {
+	pass "$test_name rwlock_destroy"
+    }
+    
+    if { $wrlock_entry_correct == 0 } {
+	fail "$test_name wrlock_entry"
+    } else {
+	pass "$test_name wrlock_entry"
+    }
+}
+exec rm -f $test

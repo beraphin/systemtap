@@ -1,0 +1,222 @@
+#! stap -p4 --compatible=2.9
+
+probe begin {
+	print (_stp_syscall_nr())
+	print (_struct_timeval_u(0,0))
+	print (_struct_compat_timeval_u(0,0))
+	print (_struct_timezone_u(0))
+	print (_stp_clock_nanosleep_flags_str(0))
+	print (_struct_utimbuf_actime(0))
+	print (_struct_utimbuf_modtime(0))
+	print (_struct_compat_utimbuf_actime(0))
+	print (_struct_compat_utimbuf_modtime(0))
+	print (_struct_timespec_u(0,0))
+	print (_struct_compat_timespec_u(0,0))
+	print (_struct_itimerspec_u(0))
+	print (_struct_itimerval_u(0))
+	print (_struct_compat_itimerval_u(0))
+	print (_struct_sockaddr_u(0,0))
+%( systemtap_v >= "2.5" %?
+	print (_struct_sockaddr_u_ip_addr(0,0))
+	print (_struct_sockaddr_u_tcp_port(0,0))
+	print (_struct_sockaddr_u_sa_family(0,0))
+	print (_struct_sockaddr_u_ipv6_flowinfo(0,0))
+	print (_struct_sockaddr_u_ipv6_scope_id(0,0))
+	print (_struct_sockaddr_u_impl(0,0,0))
+%)
+	print (_struct_rlimit_u(0))
+	print (_fildes_index_u(0, 0))
+
+	print (__sem_flags(0))
+	print (__get_argv(0,0))
+	print (__get_compat_argv(0,0))
+%(systemtap_v <= "3.2" %?
+	print (__count_envp(0))
+	print (__count_compat_envp(0))
+%)
+
+%(systemtap_v <= "2.7" %?
+	print (_adjtx_mode_str(0))
+%)
+	print (_getrandom_flags_str(0))
+	print (_inotify_watch_mask_str(0))
+
+	print (_sigprocmask_how_str(0))
+	print (_itimer_which_str(0))
+
+# nfsservctl was removed in kernel 3.0/2.6.40.
+%( kernel_v < "2.6.40" && CONFIG_NFSD == "[ym]" %?
+	print (_nfsctl_cmd_str(0))
+%)
+
+	print (_get_wc_str(0))
+	print (_flock_cmd_str(0))
+
+	print (_sys_pipe2_flag_str(0))
+	print (_sys_open_flag_str(0))
+	print (_access_mode_str(0))
+	print (_sys_open_mode_str(0))
+
+	print (_mknod_mode_str(0))
+	print (_msync_flag_str(0))
+
+%(systemtap_v <= "2.7" %?
+	print (_waitid_opt_str(0))
+%)
+	print (_wait4_opt_str(0))
+
+	print (WIFEXITED(0))
+	print (WEXITSTATUS(0))
+	print (WIFSIGNALED(0))
+	print (WCOREDUMP(0))
+	print (WTERMSIG(0))
+	print (WIFSTOPPED(0))
+	print (WSTOPSIG(0))
+	print (WIFCONTINUED(0))
+
+	print (_ptrace_event_name(0))
+	print (_wait_status_str(0))
+
+	print (_seccomp_op_str(0))
+	print (_bpf_cmd_str(0))
+	print (_seccomp_flags_str(0))
+	print (_msg_flags_str(0))
+%(systemtap_v <= "2.5" %?
+	print (_sendflags_str(0))
+	print (_recvflags_str(0))
+%)
+
+	print (_mfd_flags_str(0))
+	print (_stp_mlock2_str(0))
+	print (_mlockall_flags_str(0))
+	print (_module_flags_str(0))
+	print (_sched_policy_str(0))
+	print (_priority_which_str(0))
+
+	print (_shutdown_how_str(0))
+	print (_reboot_magic_str(0))
+	print (_reboot_flag_str(0))
+
+	print (_waitid_which_str(0))
+	print (_futex_op_str(0))
+	print (_futex_wake_op_str(0))
+
+	print (_mountflags_str(0))
+	print (_umountflags_str(0))
+
+%(systemtap_v <= "2.7" %?
+	print (_statfs_f_type_str(0))
+%)
+	print (_mremap_flags(0))
+	print (_madvice_advice_str(0))
+	print (_fadvice_advice_str(0))
+	print (_fcntl_cmd_str(0))
+	print (_seek_whence_str(0))
+	print (_quotactl_cmd_str(0))
+
+	print (_sockopt_optname_str(0))
+	print (_sockopt_level_str(0))
+	print (_sock_family_str(0))
+	print (_sock_type_str(0))
+	print (_sock_flags_str(0))
+	print (_sock_protocol_str(0,0))
+
+	print (_opoll_op_str(0))
+%(systemtap_v <= "2.7" %?
+	print (_epoll_events_str(0))
+%)
+
+	print (_rlimit_resource_str(0))
+	print (_rusage_who_str(0))
+
+	print (__short(0))
+	print (__ushort(0))
+	print (__int32(0))
+	print (__uint32(0))
+	print (__ulong(0))
+	print (__long(0))
+
+	print (_dfd_str(0))
+	print (_adjtimex_return_str(0))
+
+	print (_signal_name(0))
+	print (_semctl_cmd(0))
+	print (_stp_sigset_u(0))
+	print (_stp_compat_sigset_u(0))
+	print (__fork_flags(0))
+	print (_at_flag_str(0))
+
+	print (_epoll_create1_flag_str(0))
+	print (_eventfd2_flag_str(0))
+	print (_signalfd4_flags_str(0))
+	print (_inotify_init1_flag_str(0))
+	print (_dup3_flag_str(0))
+
+	print (_shmat_flags_str(0))
+	print (_mprotect_prot_str(0))
+	print (_mmap_flags(0))
+	print (get_mmap_args(0))
+
+	print (_sighandler_str(0))
+	print (_struct_sigaction_u(0))
+	print (_struct_sigaction32_u(0))
+	print (_struct_old_sigaction32_u(0))
+	print (_stp_sigmask_str(0))
+
+	print (irqflags_str(0))
+
+	print (_stp_struct_iovec_u(0))
+	print (_stp_struct_compat_iovec_u(0))
+	print (_stp_elf_notes_str(0))
+
+	print (__ptrace_request_str(0))
+	print (_ptrace_argstr(0,0,0,0))
+	print (_ptrace_return_geteventmsg_data(0,0))
+	# Implementation is in arch specific files but with compatible API.
+	print (_ptrace_return_arch_prctl_addr(0,0,0))
+
+	print (_ptrace_return_geteventmsg_data(0,0))
+	print (_swapon_flags_str(0))
+	print (__is_user_regs(0))
+	print (_stp_shmget_flags_str(0))
+	print (_stp_msgget_key_str(0))
+	print (_stp_msgctl_cmd_str(0))
+	print (_stp_msgflg_str(0))
+	print (_stp_compat_msgrcv_msgbuf(0,0))
+	print (_stp_compat_msgrcv_msgtyp(0,0,0))
+	print (_stp_xattr_flags_str(0))
+	print (_stp_xattr_val_str(0,0))
+	print (_stp_ioprio_which_str(0))
+	print (_stp_ioprio_value_str(0))
+
+	print (_mempolicy_flags_str(0))
+	print (_mempolicy_mode_str(0))
+	print (_finit_module_flags_str(0))
+	print (_prctl_argstr(0, 0, 0, 0, 0))
+	print (_stp_timerfd_flags_str(0))
+	print (_stp_fallocate_mode_str(0))
+	print (_sync_file_range_flags_str(0))
+	print (_stp_siginfo_u(0))
+	print (_stp_compat_siginfo_u(0))
+
+	print (_struct_tms_u(0))
+	print (_struct_sysinfo_u(0))
+	print (_kexec_flags_str(0))
+	print (_kexec_file_load_flags_str(0))
+
+	print (_stp_sigaltstack_u(0))
+	print (_stp_compat_sigaltstack_u(0))
+
+	print (_renameat2_flags_str(0))
+	print (_fanotify_init_flags_str(0))
+	print (_fanotify_mark_flags_str(0))
+	print (_fanotify_mark_mask_str(0))
+	print (_perf_event_open_flags_str(0))
+	print (_kcmp_type_str(0))
+	print (_struct_sched_attr_u(0))
+        print (_struct_compat_itimerspec_u(0))
+        print (_struct_compat_timex_u(0))
+
+	print (_membarrier_cmd_str(0))
+	print (_userfaultfd_flags_str(0))
+}

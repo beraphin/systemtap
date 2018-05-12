@@ -1,0 +1,62 @@
+@define __emitpriv
+%(
+    %( $1 == 1 %?
+        private
+    %)
+%)
+
+@__emitpriv global gs0_save
+@__emitpriv global gs0 = 41
+@__emitpriv global gs1 = 1
+@__emitpriv global gs2 = 2
+@__emitpriv global gs3 = 3
+@__emitpriv global gs4 = 4
+@__emitpriv global gs5 = 5
+@__emitpriv global gs6 = 6
+@__emitpriv global gs7 = 7
+@__emitpriv global gs8 = 8
+@__emitpriv global gs9 = 9
+@__emitpriv global gs10 = 10
+@__emitpriv global gs11 = 11
+@__emitpriv global ga1
+@__emitpriv global ga2
+@__emitpriv global gtemp
+
+function fna(a:long) {return a}
+
+probe begin(-9223372036854775808) {
+ gs0_save = gs0
+}
+probe begin 
+{ 
+ temp = 2;
+
+ gs1 = gs1 + 2;
+ gs2 += 2;
+ ++ gs3;
+ gs4 ++;
+ gs5 ++;
+ gs6 = gs6 + temp;
+
+ printf ("gs7=%d ",fna(gs7)) 
+
+ gtemp = (gs8++) & (gtemp = (gs9++))
+
+ ls0 = gtemp + gs10++;
+
+ println(gs11++)
+
+ ga1 ["foo"] += 2;
+ ga2 ["foo"] ++;
+
+ ls1 = ls1 + 2;
+ ls2 += ls2;
+ ls3 = 0;
+ printf ("ls0=%d ls1=%d ",ls0, ls1);
+ ++ ls3;
+ ls4 ++;
+ ls5 = gs5;
+ printf ("ls5=%d\n",ls5);
+ 
+ exit() 
+}

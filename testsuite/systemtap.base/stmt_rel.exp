@@ -1,0 +1,96 @@
+set test "stmt_rel"
+
+# Tests that relative linenos are consistent with wildcard linenos.
+
+proc get_listings { probe_point } {
+   global test
+
+   # Get listing from stap -l
+   if {![catch {exec stap -l ${probe_point} 2>@1} output]} {
+      return [split $output "\n"]
+   }
+}
+
+proc parse_lineno { function line } {
+   global test
+
+   # Look for digits between : and "
+   if {[regexp "\[^:\]+:(\[0-9\]+)\"" $line match submatch]} {
+      verbose -log "parsed lineno $submatch in line $line"
+      return $submatch
+   } else {
+      verbose -log "can't parse lineno in '$line'"
+      return 0
+   }
+}
+
+proc get_function_decl_line { function } {
+   set probe_point "kernel.function\(\"$function\"\)"
+   set line [lindex [get_listings $probe_point] 0]
+   return [parse_lineno $function $line]
+}
+
+proc collect_valid_linenos { function } {
+   set linenos ""
+   set probe_point "kernel.statement\(\"$function:*\"\)"
+   foreach line [get_listings $probe_point] {
+      lappend linenos [parse_lineno $function $line]
+   }
+   return $linenos
+}
+
+proc is_valid_rel_lineno { function decl_line rel } {
+   set probe_point "kernel.statement\(\"$function+$rel\"\)"
+   set lines [get_listings $probe_point]
+   if {$lines == ""} {
+      return 0
+   } else {
+      set line [lindex $lines 0]
+      set lineno [parse_lineno $function $line]
+      return [expr $lineno == [expr $decl_line + $rel]]
+   }
+}
+
+proc test_stmt_rel { function } {
+   global test
+
+   set valid_linenos [collect_valid_linenos $function]
+   set last_valid_lineno [lindex $valid_linenos end]
+   if {[llength $valid_linenos] == 0} {
+      fail "$test ($function - no valid linenos in $function)"
+      return
+   }
+
+   set decl_line [get_function_decl_line $function]
+   set max_valid_rel [expr $last_valid_lineno - $decl_line]
+
+   set valid_rel_linenos ""
+   foreach rel [exec seq 0 $max_valid_rel] {
+      if {[is_valid_rel_lineno $function $decl_line $rel]} {
+         lappend valid_rel_linenos [expr $decl_line + $rel]
+      }
+   }
+
+   foreach lineno $valid_linenos {
+      if {[lsearch -integer -exact $valid_rel_linenos $lineno] < 0} {
+         fail "$test ($function - lineno not in rel)"
+         verbose -log "wildcard lineno $lineno not in rel linenos: $valid_rel_linenos"
+         return
+      }
+   }
+
+   pass "$test ($function - linenos in wildcard also in rel)"
+}
+
+# Sanity check that bio_init has at least 3 linenos
+if {[expr [llength [collect_valid_linenos {bio_init@*/bio.c}]] >= 3]} {
+   pass "$test (bio_init sanity check)"
+} else {
+   fail "$test (bio_init sanity check)"
+}
+
+test_stmt_rel {bio_init@*/bio.c}
+test_stmt_rel {bio_reset@*/bio.c}
+test_stmt_rel {vfs_read@fs/read_write.c}
+test_stmt_rel {vfs_write@fs/read_write.c}
+

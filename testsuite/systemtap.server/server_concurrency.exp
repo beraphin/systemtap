@@ -1,0 +1,144 @@
+# Server Concurrency Tests
+
+# The setup_server procedure always uses a "fresh" server log file, so
+# we don't need to do the save and restore this test used to do.
+global server_logfile
+
+# Start our own server and make sure we can work with it.
+if {! [setup_server --max-threads 6]} {
+    untested "Compile-server client tests against a server"
+    return;
+}
+
+# Find the port chosen by the server. This way the port
+# should always be unique (as opposed to specifying a
+# a static port).
+set server_port 0
+set f [open $server_logfile]
+set matched 0
+verbose -log "Server output: "
+while {1} {
+    set line [gets $f]
+    if {[eof $f]} {
+        close $f
+        break
+    }
+    verbose -log "$line"
+    if { [regexp {^.*Using network address .+:(\d+)$} $line matched server_port ] } {
+      close $f
+      break
+    }
+}
+if { $server_port == 0 } {
+    verbose -log "Could not find port number in server log: $logfile"
+}
+
+# Set up the hostname and port we will use to connect to the server
+set test "server_concurrency"
+set failed 1
+set server_spec [info hostname]:$server_port
+set use_server --use-server=$server_spec
+verbose -log "Client/Server tests will be run by contacting the server directly as $server_spec"
+
+# Start the first connection...
+set cmd "stap $use_server -p4 $srcdir/systemtap.server/server_concurrency1.stp"
+verbose -log "executing: $cmd"
+eval spawn $cmd
+set firstid $spawn_id
+
+# Start the second connection...
+set cmd "stap $use_server -p4 $srcdir/systemtap.server/server_concurrency2.stp"
+verbose -log "executing: $cmd"
+eval spawn $cmd
+set secondid $spawn_id
+
+# Start the third connection...
+set cmd "stap $use_server -p4 $srcdir/systemtap.server/server_concurrency3.stp"
+verbose -log "executing: $cmd"
+eval spawn $cmd
+set thirdid $spawn_id
+
+# Start the fourth connection...
+set cmd "stap $use_server -p4 $srcdir/systemtap.server/server_concurrency1.stp"
+verbose -log "executing: $cmd"
+eval spawn $cmd
+set fourthid $spawn_id
+
+# Start the fifth connection...
+set cmd "stap $use_server -p4 $srcdir/systemtap.server/server_concurrency2.stp"
+verbose -log "executing: $cmd"
+eval spawn $cmd
+set fifthid $spawn_id
+
+# Start the sixth connection...
+set cmd "stap $use_server -p4 $srcdir/systemtap.server/server_concurrency3.stp"
+verbose -log "executing: $cmd"
+eval spawn $cmd
+set sixthid $spawn_id
+
+# Wait for them to finish
+expect {
+    -timeout 180
+    -i $firstid timeout {
+        kill -INT -[exp_pid -i $firstid] 2
+        fail "$test (timeout 1)"
+        exp_continue
+    }
+    -i $secondid timeout {
+        kill -INT -[exp_pid -i $secondid] 2
+        fail "$test (timeout 2)"
+        exp_continue
+    }
+    -i $thirdid timeout {
+        kill -INT -[exp_pid -i $thirdid] 2
+        fail "$test (timeout 3)"
+        exp_continue
+    }
+    -i $fourthid timeout {
+        kill -INT -[exp_pid -i $fourthid] 2
+        fail "$test (timeout 4)"
+        exp_continue
+    }
+    -i $fifthid timeout {
+        kill -INT -[exp_pid -i $fifthid] 2
+        fail "$test (timeout 5)"
+        exp_continue
+    }
+    -i $sixthid timeout {
+        kill -INT -[exp_pid -i $sixthid] 2
+        fail "$test (timeout 6)"
+        exp_continue
+    }
+}
+catch {close -i $firstid}; catch {wait -i $firstid}
+catch {close -i $secondid}; catch {wait -i $secondid}
+catch {close -i $thirdid}; catch {wait -i $thirdid}
+catch {close -i $fourthid}; catch {wait -i $fourthid}
+catch {close -i $fifthid}; catch {wait -i $fifthid}
+catch {close -i $sixthid}; catch {wait -i $sixthid}
+
+# Check the log output file for cuncurrency
+set f [open $server_logfile]
+verbose -log "Server ouput: "
+while {1} {
+    set line [gets $f]
+    if {[eof $f]} {
+        close $f
+        break
+    }
+    verbose -log "$line"
+    if { [regexp {^.*Processing 6 concurrent requests...$} $line ] } {
+        set failed 0
+        close $f
+        break
+    }
+}
+
+if { $failed == 0 } {
+    pass $test
+} else {
+    fail $test
+}
+
+# Cleanup and shutdown the server we started.
+shutdown_server

@@ -1,0 +1,12 @@
+# Make sure that optimization works with void statements
+
+set test "optim_voidstmt"
+
+foreach runtime [get_runtime_list] {
+    if {$runtime != ""} {
+	stap_run $test no_load $all_pass_string \
+	    --runtime=$runtime -w -g $srcdir/$subdir/$test.stp
+    } else {
+	stap_run $test no_load $all_pass_string -w -g $srcdir/$subdir/$test.stp
+    }
+}

@@ -1,0 +1,14 @@
+# Check variables scope
+
+set test "var_scope"
+if {![installtest_p]} { untested "$test"; return }
+
+foreach runtime [get_runtime_list] {
+    if {$runtime != ""} {
+	stap_run $test no_load $all_pass_string \
+	    --runtime=$runtime -w $srcdir/$subdir/$test.stp
+    } else {
+	stap_run $test no_load $all_pass_string \
+	    -w $srcdir/$subdir/$test.stp
+    }
+}

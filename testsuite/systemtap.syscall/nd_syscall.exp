@@ -1,0 +1,111 @@
+# nd_syscall.exp
+#
+# This script searches the systemtap.syscall directory for C files to
+# test. See the README file for details on the C files.
+#
+# To restrict C files to test, set the CHECK_ONLY environment variable.
+# For example, to only test the readwrite and accept C files, run:
+#
+#    make installcheck RUNTESTFLAGS=nd_syscall.exp CHECK_ONLY="readwrite accept"
+
+set test_script "nd_sys.stp"
+set test_module_name "nd_syscall"
+set wd [pwd]
+set test_module "${wd}/${test_module_name}.ko"
+
+source $srcdir/$subdir/test.tcl
+
+proc test_procedure {} {
+    global env srcdir subdir test_script test_module test_module_name
+    set wd [pwd]
+    set flags ""
+
+    set patterns []
+    if {[info exists env(CHECK_ONLY)]} {
+	foreach file $env(CHECK_ONLY) {
+	    lappend patterns "$file.c"
+	}
+    } else {
+	lappend patterns "*.c"
+    }
+
+    if {$srcdir == ""} {
+	set basedir ""
+    } else {
+	set basedir "$srcdir/$subdir/"
+    }
+
+    set test_files []
+    foreach pattern $patterns {
+	set test_files [concat $test_files \
+			    [glob -nocomplain "${basedir}${pattern}"]]
+    }
+
+    if {[llength $test_files] == 0} {
+	# If our globbing didn't find any test files, there isn't any
+	# point in proceeding.
+	fail "$test_module_name: no tests found"
+	return
+    }
+
+    # To speed things up, go ahead and compile the test module once
+    # here, then just use it down in run_one_test(). The test script
+    # uses wildcards to cover every syscall and takes time to parse.
+    #
+    # Note that at one point we were passing '--skip-badvars' when
+    # compiling the syscall module. This tends to hide errors and not
+    # give errors when we expect them.
+    set script "$srcdir/$subdir/${test_script}"
+    set cmd "stap -p4 -m ${test_module_name} ${script}"
+    exec /bin/rm -f ${test_module}
+
+    # Remember any set value of SYSTEMTAP_DEBUGINFO_PATH
+    if {[info exists env(SYSTEMTAP_DEBUGINFO_PATH)]} {
+        set old_path $env(SYSTEMTAP_DEBUGINFO_PATH)
+        set restore_old_path 1
+    } else {
+        set restore_old_path 0
+    }
+
+    # Override SYSTEMTAP_DEBUGINFO_PATH to ensure no debuginfo could be used
+    set env(SYSTEMTAP_DEBUGINFO_PATH) ""
+    catch {eval exec $cmd} output
+
+    # Restore any previous value, otherwise unset it
+    if {$restore_old_path} {
+        set env(SYSTEMTAP_DEBUGINFO_PATH) $old_path
+    } else {
+        unset env(SYSTEMTAP_DEBUGINFO_PATH)
+    }
+
+    send_log "${output}\n"
+    if {[file exists ${test_module}]} {
+	pass "${script} compilation"
+    } else {
+	# If compiling the test module failed, there isn't much point
+	# in trying to run any of the real tests.
+	fail "${script} compilation"
+	return
+    }
+
+    for {set i 0} {$i < [arch_compile_flags]} {incr i} {
+	set flags [arch_compile_flag $i]
+	set arch [arch_compile_flag_name $i]
+	set arch_size [arch_compile_flag_bits $i]
+	verbose -log "i: $i flags: $flags arch: $arch size: $arch_size"
+
+	foreach filename [lsort $test_files] {
+	    set testname [file tail [string range $filename 0 end-2]]
+	    if {![installtest_p]} {
+		untested "${arch_size}-bit $testname"; continue
+	    }
+	    send_log "Testing ${arch_size}-bit ${testname} nd_syscall\n"
+	    run_one_test $filename $flags ${arch_size} "nd_syscall"
+	}
+    }
+
+    # Cleeanup
+    exec /bin/rm -f ${test_module}
+}
+
+test_procedure

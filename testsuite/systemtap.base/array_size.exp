@@ -1,0 +1,12 @@
+# Check that specifying an array size gives more room than MAXMAPENTRIES
+
+set test "array_size"
+
+foreach runtime [get_runtime_list] {
+    if {$runtime != ""} {
+	stap_run $test no_load $all_pass_string \
+	     -DMAXMAPENTRIES=1 --runtime=$runtime $srcdir/$subdir/$test.stp 
+    } else {
+	stap_run $test no_load $all_pass_string -DMAXMAPENTRIES=1 $srcdir/$subdir/$test.stp 
+    }
+}

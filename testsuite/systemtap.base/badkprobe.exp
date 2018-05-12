@@ -1,0 +1,39 @@
+set test "bad kprobe registration"
+set script {
+    probe $1 { k++ }  global k
+    probe timer.ms(100) { exit() }
+    probe end { println("cleanup ok") }
+}
+
+if {! [installtest_p]} { untested $test; return }
+
+set bad_kprobes {
+    kernel.statement(-1).absolute
+    kprobe.statement(-1).absolute
+}
+
+foreach bk $bad_kprobes {
+    set test "bad kprobe registration: $bk"
+    spawn stap -g -e "$script" "$bk"
+    expect {
+        -timeout 60
+        -re "^WARNING: probe .*registration error.*\r\ncleanup ok\r\n" { pass $test }
+        eof { fail "$test (eof)" }
+        timeout { fail "$test (timeout)" }
+    }
+    catch {close}
+    catch {wait}
+}
+
+foreach bk $bad_kprobes {
+    set test "bad optional kprobe registration: $bk"
+    spawn stap -g -w -e "$script" "$bk ?"
+    expect {
+        -timeout 60
+        -re "^cleanup ok\r\n" { pass $test }
+        eof { fail "$test (eof)" }
+        timeout { fail "$test (timeout)" }
+    }
+    catch {close}
+    catch {wait}
+}

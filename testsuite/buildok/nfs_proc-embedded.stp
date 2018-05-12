@@ -1,0 +1,22 @@
+#! stap -p4 --compatible=2.9
+
+probe begin {
+	print (AF_INET() +
+	       AF_INET6() +
+	       NFS_I(0) +
+	       NFS_FH(0) +
+	       NFS_SERVER(0) +
+	       NFS_CLIENT(0) +
+	       NFS_PROTO(0) +
+	       get_ip_from_client(0) +
+	       get_prot_from_client(0) +
+	       get_ip(0) +
+	       get_prot(0) +
+	       __nfsv4_bitmask (0,0) +
+%( systemtap_v < "2.3" %?
+	       __getfh_inode (0) +
+%)
+	       0)
+
+}
+

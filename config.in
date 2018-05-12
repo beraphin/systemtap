@@ -1,0 +1,223 @@
+/* config.in.  Generated from configure.ac by autoheader.  */
+
+/* Configuration/build date */
+#undef DATE
+
+/* Define to 1 if translation of program messages to the user's native
+   language is requested. */
+#undef ENABLE_NLS
+
+/* make -P prologue-searching default */
+#undef ENABLE_PROLOGUES
+
+/* Define to 1 to enable process.mark probes in stap, staprun, stapio. */
+#undef ENABLE_SDT_PROBES
+
+/* Define to 1 if you have the avahi libraries. */
+#undef HAVE_AVAHI
+
+/* Define to 1 if you have the <boost/utility/string_ref.hpp> header file. */
+#undef HAVE_BOOST_UTILITY_STRING_REF_HPP
+
+/* Define to 1 if you have the <BPatch_object.h> header file. */
+#undef HAVE_BPATCH_OBJECT_H
+
+/* Define to 1 if you have the Mac OS X function CFLocaleCopyCurrent in the
+   CoreFoundation framework. */
+#undef HAVE_CFLOCALECOPYCURRENT
+
+/* Define to 1 if you have the Mac OS X function CFPreferencesCopyAppValue in
+   the CoreFoundation framework. */
+#undef HAVE_CFPREFERENCESCOPYAPPVALUE
+
+/* Define to 1 if you have the <crash/defs.h> header file. */
+#undef HAVE_CRASH_DEFS_H
+
+/* define if the compiler supports basic C++11 syntax */
+#undef HAVE_CXX11
+
+/* Define if the GNU dcgettext() function is already present or preinstalled.
+   */
+#undef HAVE_DCGETTEXT
+
+/* Define to 1 if Dyninst is enabled */
+#undef HAVE_DYNINST
+
+/* Define to 1 if F_SETPIPE_SZ is available. */
+#undef HAVE_F_SETPIPE_SZ
+
+/* Define if the GNU gettext() function is already present or preinstalled. */
+#undef HAVE_GETTEXT
+
+/* Define to 1 to enable http web service support in systemtap. */
+#undef HAVE_HTTP_SUPPORT
+
+/* Define if you have the iconv() function and it works. */
+#undef HAVE_ICONV
+
+/* Define to 1 if you have the <inttypes.h> header file. */
+#undef HAVE_INTTYPES_H
+
+/* Flag indicating that libHelperSDT.so is available (can be found in
+   PKGLIBDIR) */
+#undef HAVE_JAVA
+
+/* Define to 1 if you have the `dw' library (-ldw). */
+#undef HAVE_LIBDW
+
+/* Define to 1 if you have the `elf' library (-lelf). */
+#undef HAVE_LIBELF
+
+/* Define if you have the readline library (-lreadline). */
+#undef HAVE_LIBREADLINE
+
+/* have librpm */
+#undef HAVE_LIBRPM
+
+/* have librpmio */
+#undef HAVE_LIBRPMIO
+
+/* Define to 1 if you have the 'sqlite3' library (-lsqlite3). */
+#undef HAVE_LIBSQLITE3
+
+/* Define to 1 if libvirt development libraries are installed */
+#undef HAVE_LIBVIRT
+
+/* Define to 1 if libxml2 development libraries are installed */
+#undef HAVE_LIBXML2
+
+/* Define to 1 if you have the <linux/bpf.h> header file. */
+#undef HAVE_LINUX_BPF_H
+
+/* Define to 1 if you have the <memory.h> header file. */
+#undef HAVE_MEMORY_H
+
+/* Define to 1 if json-c and ncurses libraries are installed */
+#undef HAVE_MONITOR_LIBS
+
+/* Define to 1 if you have the nss libraries. */
+#undef HAVE_NSS
+
+/* Define to 1 if you have the `openat' function. */
+#undef HAVE_OPENAT
+
+/* Define to 1 if you have the `ppoll' function. */
+#undef HAVE_PPOLL
+
+/* Define to 1 to enable python version 2 probe support in systemtap. */
+#undef HAVE_PYTHON2_PROBES
+
+/* Define to 1 to enable python version 3 probe support in systemtap. */
+#undef HAVE_PYTHON3_PROBES
+
+/* Define to 1 if you have the <Python.h> header file. */
+#undef HAVE_PYTHON_H
+
+/* Define to 1 if you have the SELinux libraries. */
+#undef HAVE_SELINUX
+
+/* Define to 1 if you have the <stdint.h> header file. */
+#undef HAVE_STDINT_H
+
+/* Define to 1 if you have the <stdlib.h> header file. */
+#undef HAVE_STDLIB_H
+
+/* Define to 1 if you have the <strings.h> header file. */
+#undef HAVE_STRINGS_H
+
+/* Define to 1 if you have the <string.h> header file. */
+#undef HAVE_STRING_H
+
+/* Define to 1 if you have the <sys/stat.h> header file. */
+#undef HAVE_SYS_STAT_H
+
+/* Define to 1 if you have the <sys/types.h> header file. */
+#undef HAVE_SYS_TYPES_H
+
+/* Define to 1 if you have the <unistd.h> header file. */
+#undef HAVE_UNISTD_H
+
+/* Define to 1 if the base client code is needed. */
+#undef NEED_BASE_CLIENT_CODE
+
+/* Name of package */
+#undef PACKAGE
+
+/* Define to the address where bug reports for this package should be sent. */
+#undef PACKAGE_BUGREPORT
+
+/* Define to the full name of this package. */
+#undef PACKAGE_NAME
+
+/* Define to the full name and version of this package. */
+#undef PACKAGE_STRING
+
+/* Define to the one symbol short name of this package. */
+#undef PACKAGE_TARNAME
+
+/* Define to the home page for this package. */
+#undef PACKAGE_URL
+
+/* Define to the version of this package. */
+#undef PACKAGE_VERSION
+
+/* Base name of the python3 interpreter binary. */
+#undef PYTHON3_BASENAME
+
+/* Base name of the python2 interpreter binary. */
+#undef PYTHON_BASENAME
+
+/* extra stap version code */
+#undef STAP_EXTRA_VERSION
+
+/* configure prefix location */
+#undef STAP_PREFIX
+
+/* Define to 1 if you have the ANSI C header files. */
+#undef STDC_HEADERS
+
+/* Enable extensions on AIX 3, Interix.  */
+#ifndef _ALL_SOURCE
+# undef _ALL_SOURCE
+#endif
+/* Enable GNU extensions on systems that have them.  */
+#ifndef _GNU_SOURCE
+# undef _GNU_SOURCE
+#endif
+/* Enable threading extensions on Solaris.  */
+#ifndef _POSIX_PTHREAD_SEMANTICS
+# undef _POSIX_PTHREAD_SEMANTICS
+#endif
+/* Enable extensions on HP NonStop.  */
+#ifndef _TANDEM_SOURCE
+# undef _TANDEM_SOURCE
+#endif
+/* Enable general extensions on Solaris.  */
+#ifndef __EXTENSIONS__
+# undef __EXTENSIONS__
+#endif
+
+
+/* Version number of package */
+#undef VERSION
+
+/* Enable large inode numbers on Mac OS X 10.5.  */
+#ifndef _DARWIN_USE_64_BIT_INODE
+# define _DARWIN_USE_64_BIT_INODE 1
+#endif
+
+/* Number of bits in a file offset, on hosts where this is settable. */
+#undef _FILE_OFFSET_BITS
+
+/* Define for large files, on AIX-style hosts. */
+#undef _LARGE_FILES
+
+/* Define to 1 if on MINIX. */
+#undef _MINIX
+
+/* Define to 2 if the system does not provide POSIX.1 features except with
+   this defined. */
+#undef _POSIX_1_SOURCE
+
+/* Define to 1 if you need to in order for `stat' and other things to work. */
+#undef _POSIX_SOURCE

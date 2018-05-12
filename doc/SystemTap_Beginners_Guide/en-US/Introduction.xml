@@ -1,0 +1,166 @@
+<?xml version='1.0'?>
+<!DOCTYPE chapter PUBLIC "-//OASIS//DTD DocBook XML V4.5//EN" "http://www.oasis-open.org/docbook/xml/4.5/docbookx.dtd" [
+<!ENTITY % BOOK_ENTITIES SYSTEM "SystemTap_Beginners_Guide.ent"> %BOOK_ENTITIES;
+]>
+
+<chapter id="introduction">
+	<title>Introduction</title>
+	<indexterm>
+		<primary>Introduction</primary>
+		<secondary>performance monitoring</secondary>
+	</indexterm>
+
+	<indexterm>
+		<primary>performance monitoring</primary>
+		<secondary>Introduction</secondary>
+	</indexterm>
+<!-- next 2 indexterms for documentation goals -->
+
+	<para>
+		SystemTap is a tracing and probing tool that allows
+		users to study and monitor the activities of the
+		computer system (particularly, the kernel) in fine
+		detail. It provides information similar to the output
+		of tools like <command>netstat</command>,
+		<command>ps</command>, <command>top</command>, and
+		<command>iostat</command>, but is
+		designed to provide more filtering and analysis
+		options for collected information.
+	</para>
+
+
+
+<!--
+	<para>
+		SystemTap was developed as a Linux version of the DTrace tool (for <trademark>Sun Solaris</trademark>).
+	</para>
+	-->
+<section id="goals">
+	<title>Documentation Goals</title>
+
+<indexterm>
+<primary>Introduction</primary>
+<secondary>documentation goals</secondary>
+</indexterm>
+
+<indexterm>
+<primary>documentation goals</primary>
+<secondary>Introduction</secondary>
+</indexterm>
+<indexterm>
+<primary>Introduction</primary>
+<secondary>goals, documentation</secondary>
+</indexterm>
+
+<indexterm>
+<primary>goals, documentation</primary>
+<secondary>Introduction</secondary>
+</indexterm>
+
+
+	<para>SystemTap provides the infrastructure to monitor the running Linux kernel for detailed analysis. This can assist administrators and developers in identifying the underlying cause of a bug or performance problem.</para>
+
+	<para>Without SystemTap, monitoring the activity of a running kernel would require a tedious instrument, recompile, install, and reboot sequence. SystemTap is designed to eliminate this and allows users to gather the same information by running user-written SystemTap scripts.</para>
+
+	<para>SystemTap was initially designed for users with intermediate to advanced knowledge of the kernel. As a consequence, it is less useful to administrators or developers with limited knowledge of and experience with the Linux kernel. Moreover, much of the existing SystemTap documentation is aimed at knowledgeable and experienced users, which makes learning the tool similarly difficult.</para>
+
+	<para>To lower these barriers, the SystemTap Beginners Guide was written with the following goals:</para>
+<!--
+	<para>However, SystemTap was initially designed for users with intermediate to advanced knowledge of the kernel. As such, much of the existing documentation for SystemTap is primarily for advanced users. This could present a steep learning curve for administrators or developers with limited knowledge of and experience with the Linux kernel.</para>
+
+	<para>In line with that, the main goals of the <citetitle>SystemTap Beginner's Guide</citetitle> are as follows:</para>
+	-->
+	<itemizedlist>
+		<listitem><para>to introduce users to SystemTap, familiarize
+		them with its architecture, and provide setup
+		instructions;</para></listitem>
+
+		<listitem><para>to provide pre-written SystemTap scripts for monitoring detailed activity in different components of the system, along with instructions on how to run them and analyze their output.</para></listitem>
+	</itemizedlist>
+<!-- </formalpara>	 -->
+<remark>above,  Short description on the underlying goals of SystemTap_Beginners_Guide, what we want to teach users.</remark>
+
+</section>
+<!--
+	<section id="intro-usage">
+		<title>Usage</title>
+		<remark>
+			This section describes the practical uses of SystemTap, at a conceptual level. What a beginner can use SystemTap for, and what an advanced user can use SystemTap for.
+		</remark>
+	</section>
+	-->
+	<section id="intro-systemtap-vs-others">
+<!-- 		<title>SystemTap Versus Other Monitoring Tools</title> -->
+		<title>SystemTap Capabilities</title>
+		<remark>
+			** Short summary; when is SystemTap suitable vs other popular monitoring tools such as top, Oprofile or /proc
+		</remark>
+<indexterm>
+<primary>Introduction</primary>
+<secondary>capabilities of SystemTap</secondary>
+</indexterm>
+
+<indexterm>
+<primary>capabilities of SystemTap</primary>
+<secondary>Introduction</secondary>
+</indexterm>
+
+<!--
+		<para>SystemTap was originally developed as a working &PROD; version of old Linux probing tools such as <application>dprobes</application> and the Linux Trace Toolkit. Further, SystemTap can also be considered the Linux answer to <firstterm>Dtrace</firstterm>. Dtrace is a Sun Microsystems "dynamic tracing" framework that assists administrators in monitoring  and troubleshooting kernel and user-space applications in real time.</para>
+
+	<para>SystemTap aims to supplement the existing suite of Linux monitoring tools by providing users with the infrastructure to track kernel activity. In addition, SystemTap combines this capability with two things:</para>-->
+
+<itemizedlist>
+	<listitem><para><emphasis role="strong">Flexibility:</emphasis> SystemTap's framework allows users to develop simple scripts for investigating and monitoring a wide variety of kernel functions, system calls, and other events that occur in kernel space. As a result, SystemTap is not so much a <emphasis>tool</emphasis> as it is a system that allows you to develop your own kernel-specific forensic and monitoring tools.</para></listitem>
+
+	<listitem><para><emphasis role="strong">Ease of use</emphasis>: as mentioned earlier, SystemTap allows users to probe kernel-space events without having to resort to instrument, recompile, install, and reboot the kernel.</para></listitem>
+</itemizedlist>
+
+<para>Most of the SystemTap scripts enumerated in <xref linkend="useful-systemtap-scripts"/> demonstrate system forensics and monitoring capabilities not natively available with other similar tools (such as <command>top</command>, <command>oprofile</command>, or <command>ps</command>). These scripts are provided to give readers extensive examples of the application of SystemTap and to educate them further on the capabilities they can employ when writing their own SystemTap scripts.</para>
+<!--
+<example id="introstory">
+	<title>A Simple SystemTap Case Study</title>
+<para>The entire system is running slow. You suspect that this could be caused by a process (or multiple processes) performing an excessive amount of reads or writes to disk.</para>
+
+<para>To test your theory, you write a simple SystemTap script that tracks how many reads and writes the system did in a 5-second time period. Once you prove your theory right, you then write another SystemTap script that tracks which processes are performing excessive reads/writes.</para>
+
+<para>With a list of processes performing excessive reads/writes, you can then examine which ones are generating more I/O activity than expected.</para>
+
+-->
+
+
+<!--
+<formalpara>
+	<title>Advantages</title>
+	<para>TBD</para>
+</formalpara>
+-->
+	</section>
+	<section id="intro-systemtap-limitations">
+		<title>Limitations of SystemTap</title>
+<indexterm>
+	<primary>Introduction</primary>
+	<secondary>limitations of SystemTap</secondary>
+</indexterm>
+
+<indexterm>
+	<primary>limitations of SystemTap</primary>
+	<secondary>Introduction</secondary>
+</indexterm>
+
+
+<para>The current iteration of SystemTap allows for a multitude of
+options when probing kernel-space events for a wide range of kernels.
+However, SystemTap's ability to probe user-space events depends
+on kernel support (the Utrace mechanism) that is not available in many kernels.
+As a consequence, only some kernel versions support user-space probing.</para>
+
+<para>At present, the developmental efforts of the SystemTap community
+are geared towards improving SystemTap's user-space probing
+capabilities.</para>
+
+
+	</section>
+
+</chapter>
+

@@ -1,0 +1,179 @@
+# stap_run TEST_NAME LOAD_GEN_FUNCTION OUTPUT_CHECK_STRING
+# TEST_NAME is a test name string
+# LOAD_GEN_FUNCTION (optional) to produce something to measure
+#     returns 0 if successful
+#     returns 1 if there was a problem
+# OUTPUT_CHECK_STRING (optional) examines the output of experiment
+#     returns 0 if successful
+#     returns 1 if there was a problem
+# Additional arguments are passed to stap as-is, including a test file .stp name.
+#
+# As a side-effect, global 'probe_errors' and 'skipped_probes' are set
+# to the number of probe errors and skipped probes seen while
+# running the probe.
+proc stap_run { TEST_NAME {LOAD_GEN_FUNCTION ""} {OUTPUT_CHECK_STRING ""} args } {
+    global probe_errors
+    global skipped_probes
+
+    # zap the srcdir prefix
+    set test_file_name $TEST_NAME
+    set TEST_NAME [regsub {.*/testsuite/} $TEST_NAME ""]
+    if {[file readable $test_file_name] && $args != ""} {
+	# If args contains a '--runtime=RUNTIME' option, append
+	# RUNTIME to the test name.
+	if {[regexp -- {--runtime=(\w+)} "$args" match runtime]} {
+	    lappend TEST_NAME "(${runtime})"
+	}
+    }
+
+    # initialize probe_errors and skipped_probes to 0
+    set probe_errors 0
+    set skipped_probes 0
+    set warning_regexp {^WARNING: Number of errors: ([0-9]+), skipped probes: ([0-9]+)\r\n}
+
+    if {[info procs installtest_p] != "" && ![installtest_p]} { untested $TEST_NAME; return }
+
+    set cmd [concat stap -v $args]
+    
+    # don't the following: ... $test_file_name could be some transient or leftover file
+    # if [file readable $test_file_name] { lappend cmd $test_file_name }
+    
+    send_log "executing: $cmd\n"
+    eval spawn $cmd
+    set mypid [exp_pid -i $spawn_id]
+    expect {
+	-timeout 180
+	-re {^WARNING: cannot find module [^\r]*DWARF[^\r]*\r\n} {exp_continue}
+	-re {^WARNING: No unwind data for /.+\r\n} {exp_continue}
+	-re {^Pass\ ([1234]):[^\r]*\ in\ ([0-9]+)usr/([0-9]+)sys/([0-9]+)real\ ms\.\r\n}
+	{set pass$expect_out(1,string) "\t$expect_out(2,string)\t$expect_out(3,string)\t$expect_out(4,string)"; exp_continue}
+	-re {^Pass\ ([34]): using cached [^\r]+\r\n}
+	{set pass$expect_out(1,string) "\t0\t0\t0"; exp_continue}
+	-re {^Passes: via server [^\r]* using [^\r]* in [0-9]+usr/[0-9]+sys/[0-9]+real ms\.\r\n} {exp_continue}
+	-re {^Pass 5: starting run.\r\n} {exp_continue}
+	-re "^systemtap starting probe\r\n" {
+	    pass "$TEST_NAME startup"
+	    if {$LOAD_GEN_FUNCTION != ""} then {
+		#run the interesting test here
+		if {[eval $LOAD_GEN_FUNCTION] == 0} then {
+		    pass "$TEST_NAME load generation"
+		} else {
+		    fail "$TEST_NAME load generation"
+		}
+	    }
+
+	    kill -INT -$mypid
+
+	    # check the output to see if it is sane
+	    set output "^systemtap ending probe\r\n$OUTPUT_CHECK_STRING"
+
+	    # By default, "expect -re" will match up to 2000 chars.
+	    # Increase this to 8K worth of data.
+	    exp_match_max 8192
+
+	    # Avoid PR17274 to propagate
+	    set origexpinternal 1
+	    if {"[exp_internal -info]" == "0"} {set origexpinternal 0}
+	    exp_internal 0
+
+	    expect {
+		-timeout 20
+		-re $warning_regexp {
+                    set probe_errors $expect_out(1,string)
+                    set skipped_probes $expect_out(2,string)
+                    exp_continue}
+		-re  $output {
+		    pass "$TEST_NAME shutdown and output"
+		    expect {
+			-timeout -1
+			-re {^Pass\ ([5]):[^\r]*\ in\ ([0-9]+)usr/([0-9]+)sys/([0-9]+)real\ ms\.\r\n}
+			{set pass$expect_out(1,string) "\t$expect_out(2,string)\t$expect_out(3,string)\t$expect_out(4,string)"
+			    verbose -log "metric:\t$TEST_NAME $pass1$pass2$pass3$pass4$pass5"}
+			-re $warning_regexp {
+			    set probe_errors $expect_out(1,string)
+			    set skipped_probes $expect_out(2,string)}
+			default {
+			    fail "$TEST_NAME unexpected output (after passing output)"
+			}
+		    }
+		}
+		default {
+		    fail "$TEST_NAME unexpected output"
+		}
+		timeout { 
+                    fail "$TEST_NAME shutdown (timeout)"
+                    kill -INT -$mypid
+                }
+		eof { fail "$TEST_NAME shutdown (eof)" }
+	    }
+	    exp_internal $origexpinternal
+	}
+	-re "semantic error:" { fail "$TEST_NAME compilation" }
+	timeout { 
+            fail "$TEST_NAME startup (timeout)"
+            kill -INT -$mypid
+        }
+	eof { fail "$TEST_NAME startup (eof)" }
+    }
+  # again for good measure with KILL after 3s
+  kill -INT -$mypid 3
+  catch close
+  wait
+}
+
+proc no_load {} {
+# nothing in here
+# load to use when nothing is needed
+    return 0
+}
+
+proc wait_n_secs {N_SECS} {
+    if {[file executable /usr/bin/stress]} {
+	# stress package is installed
+	set STRESS /usr/bin/stress 
+    }
+    if {$N_SECS > 0 && [info exists STRESS]} {
+	set ncpu [exec getconf _NPROCESSORS_CONF]
+	if {$ncpu > 2} {
+	    set ncpu [expr $ncpu - 2]
+	}
+	send_log "executing: timeout $N_SECS*2 -k 1 $STRESS -c $ncpu -t $N_SECS"
+	exec timeout --kill=1 [expr $N_SECS * 2] $STRESS -c $ncpu -t $N_SECS
+    } else {
+	# fallback method
+	# Tcl_Sleep does not always handle the system clock jumping, 
+	# so instead of the built-in "after", use /usr/bin/sleep.
+	catch { exec sleep $N_SECS }
+    }
+    return 0;
+}
+
+
+# Load function to use when you need to wait 5 seconds.
+proc wait_5_secs {} {
+    return [wait_n_secs 5];
+}
+
+proc print_system_info {} {
+	global Host Snapshot Distro GCC_FullVersion SElinux
+
+	clone_output "\nHost: $Host"
+	if {[string compare $Snapshot "unknown"]!=0} {
+		clone_output "Snapshot: $Snapshot"
+	}
+	clone_output "GCC: $GCC_FullVersion"
+	clone_output "Distro: $Distro"
+        clone_output "SElinux: $SElinux"
+        clone_output "\n"
+}
+
+if { ! [info exists env(STAP_PARALLEL)] } {
+    print_system_info
+}
+
+# tests better all be true
+#
+# BZ692445 was fixed by removing the '$' at the end of
+# all_pass_string. Yet another expect regular expression oddity. The
+# '\r\n' is good enough at finding the EOL.
+set all_pass_string "systemtap test success\r\n"

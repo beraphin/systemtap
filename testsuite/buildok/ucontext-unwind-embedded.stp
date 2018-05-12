@@ -1,0 +1,10 @@
+#! stap -p4
+
+probe begin {
+	# On platforms without uprobes, this will fail.  But,
+	# buildok.exp will figure that out and kfail this test.
+	print_ubacktrace()
+	print_ubacktrace_brief()
+	printf("%s\n", ubacktrace())
+	printf("%s\n", sprint_ubacktrace())
+}

@@ -1,0 +1,65 @@
+# Test cases for probefunc() function
+
+proc grep {fd re } {
+   while {[gets $fd s] >= 0} {
+      if [regexp $re $s] {
+         return $s
+      }
+   }
+}
+
+proc sleep_one_sec {} {
+    wait_n_secs 1;
+    return 0;
+}
+
+set systemtap_script {
+    global funcname 
+    probe %s {
+        funcname = probefunc()
+        exit()
+    }
+    probe begin {
+        log("systemtap starting probe")
+    }
+    probe end {
+        log("systemtap ending probe")
+        printf("%%s\n", funcname)
+    }
+}
+
+# open /proc/kallsyms to get address for scheduler_tick symbol 
+set symf "/proc/kallsyms"
+set symfd [open $symf r]
+set re "\\mscheduler_tick\\M"
+set rs [grep $symfd $re]
+set flds [split $rs " "]
+set addr [lindex $flds 0]
+close $symfd
+
+set prefix "probefunc:"
+
+# test probefunc() with kernel.statement().absolute
+set output_string "\\mscheduler_tick\\M\r\n"
+set probepoint "kernel.statement(0x$addr).absolute"
+set script [format $systemtap_script $probepoint]
+stap_run "${prefix}.statement.(0xaddr).absolute" sleep_one_sec $output_string -g -e $script
+
+# test probefunc() with kernel.function()
+set probepoint "kernel.function(\"scheduler_tick\")"
+set script [format $systemtap_script $probepoint]
+stap_run $prefix$probepoint sleep_one_sec $output_string -e $script
+
+# test probefunc() with kernel.function().inline
+# NOTE probefunc inline behavior changed after 1.8.
+#
+# Notice we're keeping the name of the test the same
+# 'probefunc:kernel.function("context_switch").inline', but broadening
+# the test a bit to also include 'kernel.function("should_resched")'
+# for newer kernels. Keeping the name the same helps in comparing
+# results between releases.
+set output_string "\\m(context_switch|should_resched)\\M\r\n"
+set testname "kernel.function(\"context_switch\").inline"
+set probepoint "kernel.function(\"context_switch\").inline ?, kernel.function(\"should_resched\").inline ?"
+set script [format $systemtap_script $probepoint]
+stap_run $prefix$testname sleep_one_sec $output_string -e $script --compatible=1.8

@@ -1,0 +1,36 @@
+# Check that we can dereference a type declaration that is
+# defined in a separate CU from the function.
+set test "cu-decl"
+
+set script {
+    probe process("cu-decl").function("print") {
+        println($f->x * $f->y)
+    }
+}
+
+set sources "$srcdir/$subdir/$test-1.c $srcdir/$subdir/$test-2.c"
+set flags "additional_flags=-g"
+for {set i 0} {$i < [all_compile_flags]} {incr i} {
+  set extra_flag [all_compile_flag $i]
+  set extra_name [all_compile_flag_name $i]
+
+  set res [target_compile $sources $test executable "$flags $extra_flag"]
+  if { $res != "" } {
+      verbose "target_compile failed: $res" 2
+      fail "$test-$extra_name target compilation"
+      untested "$test-$extra_name"
+  } else {
+      pass "$test-$extra_name target compilation"
+  }
+  foreach runtime [get_runtime_list] {
+    if {$runtime != ""} {
+      stap_compile $test-$extra_name-$runtime 1 "{$script}" \
+	  --runtime=$runtime
+    } elseif {[uprobes_p]} {
+	stap_compile $test-$extra_name 1 "{$script}"
+    } else {
+	untested "$test-$extra_name"
+    }
+  }
+  catch {exec rm $test}
+}

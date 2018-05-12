@@ -1,0 +1,28 @@
+#! stap -p4
+
+# Test the conversions tapset.
+
+probe begin {
+  print (kernel_string(2342))
+  print (kernel_string(2342, "foobar"))
+  print (kernel_string_quoted(2342))
+  print (kernel_string_n(2342, 1))
+
+  print (kernel_string_utf32(2342))
+  print (kernel_string_utf32(2342, "foobar"))
+  print (kernel_string_quoted_utf32(2342))
+
+  print (kernel_string_utf16(2342))
+  print (kernel_string_utf16(2342, "foobar"))
+  print (kernel_string_quoted_utf16(2342))
+
+  print (kernel_long(2342))
+  print (kernel_int(2342))
+  print (kernel_short(2342))
+  print (kernel_char(2342))
+  print (kernel_pointer(2342))
+
+  print (kernel_buffer_quoted(2342, 10))
+  print (kernel_buffer_quoted(2342, 10, 100))
+  print (kernel_buffer_quoted_error(2342, 10, 100))
+}

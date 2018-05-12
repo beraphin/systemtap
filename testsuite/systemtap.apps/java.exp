@@ -1,0 +1,59 @@
+set test "java"
+if {[catch { exec which javac } res]} {
+    untested "$test - no javac"
+    return
+}
+
+if {! [installtest_p]} then { untested $test; return }
+if {! [java_p]} then { untested $test; return }
+
+set test "multiparams"
+
+verbose -log "javac -d ./ $srcdir/$subdir/multiparams.java"
+catch { exec javac -d ./ $srcdir/$subdir/multiparams.java } err2
+if {$err2 == "" && [file exists ./multiparams.class]} then { pass "$test compile" } else { fail "$test compile $err2" }
+
+
+# spawn stap --vp 00002 $srcdir/$subdir/multiparams.stp -c "java -Djava.library.path=$env(PKGLIBDIR) -classpath $env(PKGLIBDIR)/HelperSDT.jar:. multiparams 2>&1"
+spawn stap $srcdir/$subdir/multiparams.stp -c "java -Djava.library.path=$env(PKGLIBDIR) -classpath $env(PKGLIBDIR)/HelperSDT.jar:. multiparams 2>&1"
+set okb 0
+expect {
+    -timeout 80
+    -re {java[^\r\n]*just a multiparams hello 14 a true 10 2.71828 3.14159265359 254775806 42\r\n} { incr okb; exp_continue }
+    -re {java[^\r\n]*.null. hello 14 a true 10 2.71828 3.14159265359 254775806 42\r\n} { incr okb; exp_continue }
+    -re {java.lang.Throwable[^\r\n]*\r\n} { incr okb; exp_continue }
+    -re {multiparams.main[^\r\n]*\r\n} { incr okb; exp_continue }
+    timeout { fail "$test unexpected timeout" }
+}
+if {$okb > 3} then {
+    pass "$test ($okb)"
+    catch {exec rm ./multiparams.class}
+} else {
+    fail "$test ($okb)"
+}
+catch {close}; catch {wait}
+
+
+set test "multiparams 3.0"
+
+verbose -log "javac -d ./ $srcdir/$subdir/multiparams.java"
+catch { exec javac -d ./ $srcdir/$subdir/multiparams.java } err2
+if {$err2 == "" && [file exists ./multiparams.class]} then { pass "$test compile" } else { fail "$test compile $err2" }
+
+spawn stap --compatible=3.0 $srcdir/$subdir/multiparams.stp -c "java -Djava.library.path=$env(PKGLIBDIR) -classpath $env(PKGLIBDIR)/HelperSDT.jar:. multiparams 2>&1"
+# spawn stap --vp 00002 --compatible=3.0 $srcdir/$subdir/multiparams.stp -c "java -Djava.library.path=$env(PKGLIBDIR) -classpath $env(PKGLIBDIR)/HelperSDT.jar:. multiparams 2>&1"
+set okb 0
+expect {
+    -timeout 80
+    -re {java[^\r\n]*"just a multiparams" "hello" 14 97 1 10 2 3 254775806 42\r\n} { incr okb; exp_continue }
+    -re {java.lang.Throwable[^\r\n]*\r\n} { incr okb; exp_continue }
+    -re {multiparams.main[^\r\n]*\r\n} { incr okb; exp_continue }
+    timeout { fail "$test unexpected timeout" }
+}
+if {$okb} then {
+    pass "$test ($okb)"
+    catch {exec rm ./multiparams.class}
+} else {
+    fail "$test ($okb)"
+}
+catch {close}; catch {wait}

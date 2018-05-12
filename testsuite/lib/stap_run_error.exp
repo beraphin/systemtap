@@ -1,0 +1,71 @@
+# stap_run TEST_NAME EXPECT_ERROR ERROR_STRING OUTPUT_CHECK_STRING
+# TEST_NAME is name of the current test
+# EXPECT_ERROR lets us know to expect an error or not
+# ERROR_STRING lets us know which error to expect
+# OUTPUT_CHECK_STRING examines the output of experiment
+# Additional arguments are passed to stap as-is.
+proc stap_run_error { TEST_NAME EXPECT_ERROR ERROR_STRING OUTPUT_CHECK_STRING args } {
+    set full_error "ERROR: $ERROR_STRING\r\n"
+    set cmd [concat {stap -v} $args]
+    send_log "executing: $cmd\n"
+    eval spawn $cmd
+    set mypid [exp_pid -i $spawn_id]
+    expect {
+	-timeout 150
+	-re {^WARNING: [^\r]+\r\n} {exp_continue}
+	-re {^Pass\ [1234]: [^\r]+real\ ms\.\r\n} {exp_continue}
+	-re {^Pass\ ([34]): using cached [^\r]+\r\n} {exp_continue}
+	-re {^Pass 5: starting run.\r\n} {exp_continue}
+	-re {^ERROR: Couldn't insert module[^\r]+\r\n} {
+	    if {$EXPECT_ERROR} {
+		pass "$TEST_NAME expected insert module error"
+	    } else {
+		fail "$TEST_NAME expected insert module error"
+	    }
+	}
+	-re $full_error {
+	    if {$EXPECT_ERROR} {
+		pass "$TEST_NAME expected error"
+	    } else {
+		fail "$TEST_NAME expected error"
+	    }
+	}
+	-re "^systemtap starting probe\r\n" {
+	    kill -INT -$mypid
+
+	    # check the output to see if it is sane
+	    set output "^systemtap ending probe\r\n$OUTPUT_CHECK_STRING"
+
+	    expect {
+		-timeout 20
+		-re $output {
+		    if {$EXPECT_ERROR} {
+			fail "$TEST_NAME no expected error"
+		    } else {
+			pass "$TEST_NAME no expected error"
+		    }
+		}
+		-re $full_error {
+		    if {$EXPECT_ERROR} {
+			pass "$TEST_NAME expected error"
+		    } else {
+			fail "$TEST_NAME expected error"
+		    }
+		}
+		timeout { 
+                    fail "$TEST_NAME shutdown (timeout)"
+                    kill -INT -$mypid
+                }
+		eof { fail "$TEST_NAME shutdown (eof)" }
+	    }
+	}
+	-re "semantic error:" { fail "$TEST_NAME compilation" }
+	timeout { fail "$TEST_NAME startup (timeout)"; 
+	          kill -INT -$mypid }
+	eof { fail "$TEST_NAME startup (eof)" }
+    }
+    # again for good measure with KILL after 3s
+    kill -INT -$mypid 3
+    catch close
+    wait
+}

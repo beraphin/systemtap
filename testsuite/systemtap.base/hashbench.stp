@@ -1,0 +1,98 @@
+#! /bin/sh
+
+//bin/true && exec stap -t -g --suppress-time-limits $0 "$@"
+
+// add extra -G parameters to override these test parameters
+global dims = 3;
+global iLimit = 100;
+global jLimit = 100;
+global kLimit = 100;
+global hashmask = 0xFFFFF;
+global randomize = 0;
+global buckets[1000000]; /* <= iLimit * jLimit * kLimit */
+global bucketCounts;
+
+
+function gimmeHash1:long(a:long) %{
+    STAP_RETVALUE = hash_ix(STAP_ARG_a);
+%}
+function gimmeHash2:long(a:long, b:long) %{
+    STAP_RETVALUE = hash_iix(STAP_ARG_a, STAP_ARG_b);
+%}
+function gimmeHash3:long(a:long, b:long, c:long) %{
+    STAP_RETVALUE = hash_iiix(STAP_ARG_a, STAP_ARG_b, STAP_ARG_c);
+%}
+global stats1[1], stats2[1], stats3[1];
+probe never
+{
+  stats1[0] <<< 1;
+  stats2[0,1] <<< 1;
+  stats3[0,1,2] <<< 1;
+  println(@count(stats1[0]) + @count(stats2[0,1]) + @count(stats3[0,1,2]))
+}
+
+
+function rnd(x)
+{
+  return (randomize ? randint(1000000) : x)
+}
+
+
+probe begin(0)
+{
+      printf("parameters:\n\tdims=%d hashmask=%x\n", dims, hashmask)
+      printf("\tiLimit=%d jLimit=%d kLimit=%d randomize=%d\n", iLimit, jLimit, kLimit, randomize)
+      printf("seed=%x\n", %{ stap_hash_seed %});
+}
+
+probe begin(1)
+{
+    if (dims == 1) {
+      for (i=0; i<iLimit; i++)
+        buckets[gimmeHash1(rnd(i)) & hashmask] ++;
+    } else if (dims == 2) {
+      for (i=0; i<iLimit; i++)
+        for (j=0; j<jLimit; j++)
+          buckets[gimmeHash2(rnd(i),rnd(j)) & hashmask] ++;
+    } else if (dims == 3) {
+      for (i=0; i<iLimit; i++)
+        for (j=0; j<jLimit; j++)
+          for (k=0; k<kLimit; k++)
+            buckets[gimmeHash3(rnd(i),rnd(j),rnd(k)) & hashmask] ++;
+    } else
+      error("bad dims");
+}
+
+probe begin(2)
+{
+    printf("hash value distribution\n");
+
+    bucketsUsed = 0;
+    foreach (idx in buckets) {
+        bucketsUsed++;
+        bucketCounts <<< buckets[idx];
+    }
+    /* For a random distribution of entries to buckets, the expected
+       fraction of buckets left empty is exp(- #buckets / #entries).
+       For example, if the number of entries put into buckets is the
+       same as the number of buckets, exp(-1)=~0.37 so about 63% of
+       the buckets will be non-empty, many having one entry and some
+       having more.
+
+       Since the hash function input could be highly structured and
+       repetitive, we shouldn't base evenness of distribution of hash
+       values on evenness of distribution of input bit patterns.  */
+    printf("%d buckets in use\nBucket-population distribution (i.e., #buckets with 1 entry, with 2 entries, etc):\n",
+           bucketsUsed);
+    print(@hist_linear(bucketCounts, 1, 125, 1));
+    printf("\n");
+}
+
+
+// speed tests
+probe begin(3)
+{
+}
+
+
+probe begin(99999) { exit() }

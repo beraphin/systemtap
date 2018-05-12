@@ -1,0 +1,147 @@
+<?xml version='1.0'?>
+<!DOCTYPE section PUBLIC "-//OASIS//DTD DocBook XML V4.5//EN" "http://www.oasis-open.org/docbook/xml/4.5/docbookx.dtd" [
+]>
+
+
+	<section id="paracallgraph">
+		<title>Call Graph Tracing</title>
+
+<indexterm>
+<primary>script examples</primary>
+<secondary>call graph tracing</secondary>
+</indexterm>
+
+<indexterm>
+<primary>examples of SystemTap scripts</primary>
+<secondary>call graph tracing</secondary>
+</indexterm>
+
+<indexterm>
+<primary>call graph tracing</primary>
+<secondary>examples of SystemTap scripts</secondary>
+</indexterm>
+
+<indexterm>
+<primary>incoming/outgoing function calls, tracing</primary>
+<secondary>examples of SystemTap scripts</secondary>
+</indexterm>
+<indexterm>
+<primary>function calls (incoming/outgoing), tracing</primary>
+<secondary>examples of SystemTap scripts</secondary>
+</indexterm>
+<indexterm>
+<primary>tracing incoming/outgoing function calls</primary>
+<secondary>examples of SystemTap scripts</secondary>
+</indexterm>
+<indexterm>
+<primary>tracing call graph</primary>
+<secondary>examples of SystemTap scripts</secondary>
+</indexterm>
+
+		<remark>
+			WAR STORY: Call graph tracing http://sourceware.org/systemtap/wiki/WSCallGraph?highlight=((WarStories))
+		</remark>
+
+		<remark>
+			script: http://sourceware.org/systemtap/examples/general/para-callgraph.stp
+		</remark>
+
+
+	<para>This section describes how to trace incoming and outgoing function calls. </para>
+
+<formalpara id="scriptcallgraph">
+	<title>para-callgraph.stp</title>
+<para>
+<programlisting><xi:include parse="text" href="../testsuite/systemtap.examples/general/para-callgraph.stp" xmlns:xi="http://www.w3.org/2001/XInclude" /></programlisting>
+</para>
+</formalpara>
+<indexterm>
+<primary>script examples</primary>
+<secondary>multiple command-line arguments, example of</secondary>
+</indexterm>
+
+<indexterm>
+<primary>examples of SystemTap scripts</primary>
+<secondary>multiple command-line arguments, example of</secondary>
+</indexterm>
+
+<indexterm>
+<primary>multiple command-line arguments, example of</primary>
+<secondary>examples of SystemTap scripts</secondary>
+</indexterm>
+<indexterm>
+<primary>example of multiple command-line arguments</primary>
+<secondary>examples of SystemTap scripts</secondary>
+</indexterm>
+
+<para><xref linkend="scriptcallgraph"/> takes two command-line arguments:</para>
+<indexterm>
+<primary>script examples</primary>
+<secondary>trigger function</secondary>
+</indexterm>
+
+<indexterm>
+<primary>examples of SystemTap scripts</primary>
+<secondary>trigger function</secondary>
+</indexterm>
+
+<indexterm>
+<primary>trigger function</primary>
+<secondary>examples of SystemTap scripts</secondary>
+</indexterm>
+<itemizedlist>
+	<listitem><para>
+			The function/s whose entry/exit call you'd like to trace
+			(<command>$1</command>).
+		</para></listitem>
+
+	<listitem><para>
+			A second optional <firstterm>trigger function</firstterm> (<command>$2</command>), which
+			enables or disables tracing on a per-thread basis. Tracing in each thread
+			will continue as long as the trigger function has not exited yet.
+		</para></listitem>
+
+</itemizedlist>
+
+<remark> please verify previous if correct; i'm particularly interested in finding out how to better describe "trigger function"</remark>
+<indexterm>
+<primary>script examples</primary>
+<secondary>thread_indent(), sample usage</secondary>
+</indexterm>
+
+<indexterm>
+<primary>examples of SystemTap scripts</primary>
+<secondary>thread_indent(), sample usage</secondary>
+</indexterm>
+
+<indexterm>
+<primary>thread_indent(), sample usage</primary>
+<secondary>examples of SystemTap scripts</secondary>
+</indexterm>
+
+<para><xref linkend="scriptcallgraph"/> uses <command>thread_indent()</command>; as such, its output contains the timestamp, process name, and thread ID of <command>$1</command> (that is, the probe function you are tracing). For more information about <command>thread_indent()</command>, refer to its entry in <xref linkend="systemtapscript-functions"/>.</para>
+
+		<para>The following example contains an excerpt from the output
+for <command>stap para-callgraph.stp 'kernel.function("*@fs/*.c")' 'kernel.function("sys_read")'</command>:</para>
+
+
+<example id="paracallgraphoutput">
+	<title><xref linkend="scriptcallgraph"/> Sample Output</title>
+<screen>[...]
+   267 gnome-terminal(2921): &lt;-do_sync_read return=0xfffffffffffffff5
+   269 gnome-terminal(2921):&lt;-vfs_read return=0xfffffffffffffff5
+     0 gnome-terminal(2921):->fput file=0xffff880111eebbc0
+     2 gnome-terminal(2921):&lt;-fput
+     0 gnome-terminal(2921):->fget_light fd=0x3 fput_needed=0xffff88010544df54
+     3 gnome-terminal(2921):&lt;-fget_light return=0xffff8801116ce980
+     0 gnome-terminal(2921):->vfs_read file=0xffff8801116ce980 buf=0xc86504 count=0x1000 pos=0xffff88010544df48
+     4 gnome-terminal(2921): ->rw_verify_area read_write=0x0 file=0xffff8801116ce980 ppos=0xffff88010544df48 count=0x1000
+     7 gnome-terminal(2921): &lt;-rw_verify_area return=0x1000
+    12 gnome-terminal(2921): ->do_sync_read filp=0xffff8801116ce980 buf=0xc86504 len=0x1000 ppos=0xffff88010544df48
+    15 gnome-terminal(2921): &lt;-do_sync_read return=0xfffffffffffffff5
+    18 gnome-terminal(2921):&lt;-vfs_read return=0xfffffffffffffff5
+     0 gnome-terminal(2921):->fput file=0xffff8801116ce980</screen>
+</example>
+
+	</section>
+

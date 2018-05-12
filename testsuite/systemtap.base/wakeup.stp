@@ -1,0 +1,17 @@
+global count;
+global testing = 1
+probe kernel.function("__wake_up_common") if (testing)
+{
+  count++
+  if (count <= 8)
+    { system("echo sleeping") } /* NB: these are enqueued */
+  else if (count <= 16)
+    { warn("") } // using empty strings to avoid interjection of other strings in middle
+  else if (count <= 24)
+    { error("") } // ditto
+  else // 25
+    {
+      printf("count: %d\n", count)
+      testing = 0
+    }
+}

@@ -1,0 +1,47 @@
+set self semko
+foreach runtime [get_runtime_list] {
+    foreach file [lsort [glob -nocomplain $srcdir/$self/*.stp]] {
+	set test $self/[file tail $file]
+	if {$runtime != ""} {
+	    switch $test {
+		semko/utrace.stp {
+		    # These tests require a system without utrace-like
+		    # functionality. Since dyninst supports
+		    # utrace-like functionality, mark this test as
+		    # 'untested'.
+		    untested $test; continue }
+	    }
+
+	    verbose -log "Running $file ($runtime)"
+	    set rc [stap_run_batch $file --runtime=$runtime]
+	    lappend test "($runtime)"
+	} else {
+	    switch $test {
+		semko/utrace.stp {
+		    # These tests require a system without utrace.
+		    if {[utrace_p]} { untested $test; continue } }
+		semko/twentytwo.stp {
+		    # This test requires a kernel where an inlined
+		    # version of vfs_read() doesn't exist. One does
+		    # exist on 3.10.0-327.el7.ppc64.
+		    set pp "kernel.function(\"vfs_read\").inline"
+
+		    # Notice we are using the tcl 'exec' command
+		    # redirection of '2>@1', which is equivalent to
+		    # the shell's '2>&1'.
+		    if {![catch {exec stap -l ${pp} 2>@1} dummy]} {
+			untested $test; continue } }
+	    }
+	    
+	    verbose -log "Running $file"
+	    set rc [stap_run_batch $file]
+	}
+	if {$rc < 0} {
+	    # crashed
+	    fail $test
+	} else {
+	    setup_xfail *-*-*
+	    if {$rc == 0} { pass $test } else { fail $test }
+	}
+    }
+}

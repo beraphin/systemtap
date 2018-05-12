@@ -1,0 +1,54 @@
+// None of these global vars should be
+// autoprinted because they are all used
+
+@define __emitpriv
+%(
+    %( $1 == 1 %?
+        private
+    %)
+%)
+
+@__emitpriv global a // if condition
+@__emitpriv global b // function arg
+
+@__emitpriv global arr // used in foreach
+@__emitpriv global c // foreach array slice
+@__emitpriv global d // foreach limit
+
+@__emitpriv global e // return value
+@__emitpriv global f // ternary cond
+@__emitpriv global g // while condition
+@__emitpriv global h // arrayindex index
+
+function foo(b) {
+   if (b)
+      printf("e")
+}
+
+function bar() {
+   return ++e;
+}
+
+probe oneshot {
+
+   if (++a)
+      printf("h")
+
+   foo(++b)
+
+   arr[1,1] = 1
+   foreach ([i,j] in arr[*,++c] limit ++d) {
+      printf("l")
+   }
+
+   if (bar()) {
+      printf("l")
+   }
+
+   ++f ? printf("o") : printf("");
+
+   while (!g++)
+      printf("!")
+
+   arr[++h, 1]++
+}

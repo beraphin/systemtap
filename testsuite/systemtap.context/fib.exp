@@ -1,0 +1,59 @@
+# Tests backtrace in the classic Fibonacci program
+
+
+set test "fib"
+
+# Only run on make installcheck and utrace present.
+if {! [installtest_p]} { untested "$test"; return }
+if {! [utrace_p]} { untested "$test"; return }
+if {! [uretprobes_p]} { untested "$test"; return }
+
+set testpath  "$srcdir/$subdir"
+set testsrc   "$testpath/fib.c"
+set testexe   "[pwd]/$test"
+
+# We want debug info and no optimization (is that totally necessary?)
+set testflags "additional_flags=-g additional_flags=-O0"
+set teststp   "$testpath/$test.stp"
+
+# When possible explicitly set 64 bit mode if kernel is 64 bit. So, we
+# grab the 1st set of compile flags.
+set arch_flag [arch_compile_flag 0]
+if { $arch_flag != "" } {
+    set testflags "$testflags $arch_flag"
+}
+
+set res [target_compile $testsrc $testexe executable $testflags]
+if { $res != "" } {
+    verbose "target_compile failed: $res" 2
+    fail "unable to compile $testsrc"
+    return
+}
+
+spawn stap -c "$testexe 10" $teststp
+set fibcalls 0
+set maincalls 0
+expect {
+    -timeout 120
+    -re {^fib[^\r\n]*[\r\n]} { incr fibcalls; exp_continue }
+    -re {^main[^\r\n]*[\r\n]} { incr maincalls; exp_continue }
+    -re {^[^\r\n]*[\r\n]} {exp_continue}
+    timeout { fail "$test (timeout)" }
+    eof { }
+}
+catch { close }; catch { wait }
+if {$fibcalls == 18 && $maincalls == 2} { pass "$test ($fibcalls $maincalls)" } { fail "$test ($fibcalls $maincalls)" }
+
+spawn stap -c "$testexe 10" -- $teststp --entry
+set fibcalls 0
+set maincalls 0
+expect {
+    -timeout 120
+    -re {^fib[^\r\n]*[\r\n]} { incr fibcalls; exp_continue }
+    -re {^main[^\r\n]*[\r\n]} { incr maincalls; exp_continue }
+    -re {^[^\r\n]*[\r\n]} {exp_continue}
+    timeout { fail "$test (timeout)" }
+    eof { }
+}
+catch { close }; catch { wait }
+if {$fibcalls == 55 && $maincalls == 10} { pass "$test ($fibcalls $maincalls)" } { fail "$test ($fibcalls $maincalls)" }

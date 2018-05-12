@@ -1,0 +1,7 @@
+probe input.char {
+        if (char == "d") {
+	        print("zz")	
+	} else {
+		println(char)
+	}
+}

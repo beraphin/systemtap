@@ -1,0 +1,34 @@
+# test of histogram with interval too small
+
+set test "linear_bad"
+
+if {![installtest_p]} { untested $test; return }
+
+set script $srcdir/$subdir/$test.stp
+foreach runtime [get_runtime_list] {
+    set ok 0
+    set testname $test
+    if {$runtime != ""} {
+	spawn stap -DMAXACTION=10000 --runtime=$runtime $script
+	lappend testname "($runtime)"
+    } else {
+	spawn stap -DMAXACTION=10000 $script
+    }
+
+    expect {
+	-timeout 150
+	"WARNING: histogram: Number of buckets" {
+	    incr ok
+	    exp_continue
+	}
+	eof { }
+    }
+    catch close
+    wait
+
+    if {$ok == 1} { 
+	pass $testname
+    } else { 
+	fail $testname
+    }
+}

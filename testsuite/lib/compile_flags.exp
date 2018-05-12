@@ -1,0 +1,160 @@
+# Do any platform-specific initialize for the 'arch_compile' library.
+proc arch_compile_init {} {
+  global systemtap_arch_compile_flags
+
+  # RHEL[67] ppc64 systems can build both 64-bit and 32-bit
+  # executables. Fedora 24 ppc64 has dropped 32-bit exe support. So,
+  # if we're on ppc64 and the 32-bit exe compilation fails here, we
+  # assume that 32-bit exe support is unavailable.
+  #
+  # Note that it is possible that 32-bit exe support is available just
+  # not installed (on RHEL[67] anyway), but we can't really tell the
+  # difference.
+  if { [regexp "^(ppc64)$" $::tcl_platform(machine)] } {
+
+    # Create a tempory directory.
+    if {[catch {exec mktemp -d -t staptestXXXXXX-arch_compile-test} tmpdir]} {
+      verbose -log "Failed to create temporary directory: $tmpdir"
+      exit 1
+    }
+    set curdir [pwd]
+    cd ${tmpdir}
+
+    set source "hello.c"
+    set hello_file [open $source "w"]
+    puts $hello_file "#include <stdio.h>"
+    puts $hello_file "int main () { printf(\"Hello World!\"); return 0; }"
+    close $hello_file
+
+    set flags "additional_flags=-g compiler=gcc additional_flags=-m32"
+    set exe "hello-m32"
+    set result [target_compile $source $exe executable $flags]
+    if { $result != "" } {
+      set systemtap_arch_compile_flags 1
+      verbose -log "ppc64 32-bit support unavailable"
+    } else {
+      set systemtap_arch_compile_flags 2
+      verbose -log "ppc64 32-bit support available"
+    }
+    cd ${curdir}
+    catch {exec rm -rf $tmpdir}
+  }
+}
+
+# Number of different compile flags for this arch.
+proc arch_compile_flags {} {
+  global systemtap_arch_compile_flags
+  switch -regexp $::tcl_platform(machine) {
+    {^(x86_64|s390x)$} { return 2 }
+    {^ppc64$} { return $systemtap_arch_compile_flags }
+    default { return 1 }
+  }
+}
+
+# Additional compile flag to use for with target_compile.
+# Given INDEX starts at zero and should be smaller than the number
+# returned by arch_compile_flags.
+proc arch_compile_flag { INDEX } {
+  if { [arch_compile_flags] == 1 } {
+    return ""
+  }
+
+  switch $INDEX {
+    0 {
+      return "additional_flags=-m64"
+    }
+    1 {
+      switch -regexp $::tcl_platform(machine) {
+        {^s390x$} { return "additional_flags=-m31" }
+        default { return "additional_flags=-m32" }
+      }
+    }
+  }
+}
+
+# Name of compile flag to use in generated files or user/test messages.
+# Given INDEX starts at zero and should be smaller than the number
+# returned by arch_compile_flags.
+proc arch_compile_flag_name { INDEX } {
+  if { [arch_compile_flags] == 1 } {
+    switch -regexp $::tcl_platform(machine) {
+      {^(ia64|aarch64|ppc64le|ppc64)$} { return "m64" }
+      {^s390$} { return "m31" }
+      {^mips64$} { return "64" }
+      default { return "m32" }
+    }
+  }
+
+  switch $INDEX {
+    0 {
+      return "m64"
+    }
+    1 {
+      switch -regexp $::tcl_platform(machine) {
+        {^s390x$} { return "m31" }
+        default { return "m32" }
+      }
+    }
+  }
+}
+
+# Number of bits for compile flag for use in generated files or
+# user/test messages.
+#
+# Given INDEX starts at zero and should be smaller than the number
+# returned by arch_compile_flags.
+proc arch_compile_flag_bits { INDEX } {
+  # Notice that even though s390/s390x is 31 bits, we'll call it 32.
+  if { [arch_compile_flags] == 1 } {
+    switch -regexp $::tcl_platform(machine) {
+      {^(ia64|aarch64|ppc64le|ppc64|mips64)$} { return 64 }
+      default { return 32 }
+    }
+  }
+
+  switch $INDEX {
+    0 { return 64 }
+    1 { return 32 }
+  }
+}
+
+# Number of different combinations of compile flags.
+proc all_compile_flags {} {
+  # There are 3 sets of flags for each architecture.
+  return [expr 3 * [arch_compile_flags]]
+}
+
+# Is INDEX a native (i.e. non-multiarch) configuration?
+proc all_compile_flag_native_p { INDEX } {
+  set arch_index [expr $INDEX % [arch_compile_flags]]
+  if { $arch_index == 0 } {
+    return 1
+  }
+  return 0
+}
+
+# Is INDEX a configuration with optimization turned on?
+proc all_compile_flag_optimized_p { INDEX } {
+  return [expr (($INDEX / 2) % 3) > 0]
+}
+
+# Additional compile flag to use for with target_compile.
+# Given INDEX starts at zero and should be smaller than the number
+# returned by all_compile_flags.
+proc all_compile_flag { INDEX } {
+  set opt_flags [list "" "additional_flags=-O" "additional_flags=-O2" ]
+  set arch_index [expr $INDEX % [arch_compile_flags]]
+  set opt_flag [lindex $opt_flags [expr ($INDEX / 2) % 3]]
+  return "[arch_compile_flag $arch_index] $opt_flag"
+}
+
+# Name of compile flag to use in generated files or user/test messages.
+# Given INDEX starts at zero and should be smaller than the number
+# returned by arch_compile_flags.
+proc all_compile_flag_name { INDEX } {
+  set opt_names [list "" "-O" "-O2" ]
+  set arch_index [expr $INDEX % [arch_compile_flags]]
+  set opt_name [lindex $opt_names [expr ($INDEX / 2) % 3]]
+  return "[arch_compile_flag_name $arch_index]$opt_name"
+}
+

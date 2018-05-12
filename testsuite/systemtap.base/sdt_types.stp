@@ -1,0 +1,350 @@
+function check(name, value, expected)
+{
+  if (value == expected)
+    printf ("sdt_types PASS: %s\n", name)
+  else
+    printf ("sdt_types FAIL: %s (%#x != %#x)\n", name, value, expected)
+}
+
+function check_string(name, value, expected)
+{
+  if (value == expected)
+    printf ("sdt_types PASS: %s\n", name)
+  else
+    printf ("sdt_types FAIL: %s (%s != %s)\n", name,
+	text_strn(value, 0, 1), text_strn(expected, 0, 1))
+}
+
+
+/********** char **********/
+
+probe process(@1).mark("char_var")
+{
+  check($$name, $arg1, 126)
+}
+
+probe process(@1).mark("const_char_var")
+{
+  check($$name, $arg1, 33)
+}
+
+probe process(@1).mark("volatile_char_var")
+{
+  check($$name, $arg1, 64)
+}
+
+probe process(@1).mark("ptr_char_var")
+{
+  check($$name, $arg1, $arg2)
+  check($$name, user_int8($arg1), $arg3)
+  check($$name, $arg3, 126)
+}
+
+probe process(@1).mark("ptr_const_char_var")
+{
+  check($$name, $arg1, $arg2)
+  check($$name, user_int8($arg1), 126)
+}
+
+probe process(@1).mark("char_ptr_const_var")
+{
+  check($$name, $arg1, $arg2)
+  check($$name, user_int8($arg1), 126)
+}
+
+probe process(@1).mark("ptr_volatile_char_var")
+{
+  check($$name, $arg1, $arg2)
+  check($$name, user_int8($arg1), 126)
+}
+
+probe process(@1).mark("char_ptr_volatile_var")
+{
+  check($$name, $arg1, $arg2)
+  check($$name, user_int8($arg1), 126)
+}
+
+probe process(@1).mark("unsigned_char_var")
+{
+  check($$name, $arg1, 0x81)
+  check($$name, $arg2, 0x81)
+  check($$name, user_uint8($arg3), 0x81)
+}
+
+
+/********** short **********/
+
+probe process(@1).mark("short_int_var")
+{
+  check($$name, $arg1, 0x7fff)
+}
+
+probe process(@1).mark("const_short_int_var")
+{
+  check($$name, $arg1, -0x7fff)
+}
+
+probe process(@1).mark("volatile_short_int_var")
+{
+  check($$name, $arg1, -0x8000)
+}
+
+probe process(@1).mark("ptr_short_int_var")
+{
+  check($$name, $arg1, $arg2)
+  check($$name, user_int16($arg1), $arg3)
+  check($$name, $arg3, 0x7fff)
+}
+
+probe process(@1).mark("ptr_const_short_int_var")
+{
+  check($$name, $arg1, $arg2)
+  check($$name, user_int16($arg1), 0x7fff)
+}
+
+probe process(@1).mark("short_int_ptr_const_var")
+{
+  check($$name, $arg1, $arg2)
+  check($$name, user_int16($arg1), 0x7fff)
+}
+
+probe process(@1).mark("ptr_volatile_short_int_var")
+{
+  check($$name, $arg1, $arg2)
+  check($$name, user_int16($arg1), 0x7fff)
+}
+
+probe process(@1).mark("short_int_ptr_volatile_var")
+{
+  check($$name, $arg1, $arg2)
+  check($$name, user_int16($arg1), 0x7fff)
+}
+
+probe process(@1).mark("unsigned_short_int_var")
+{
+  check($$name, $arg1, 0x8001)
+  check($$name, $arg2, 0x8001)
+  check($$name, user_uint16($arg3), 0x8001)
+}
+
+
+/********** int **********/
+
+probe process(@1).mark("int_var")
+{
+  check($$name, $arg1, 0x7fffffff)
+}
+
+probe process(@1).mark("const_int_var")
+{
+  check($$name, $arg1, -0x7fffffff)
+}
+
+probe process(@1).mark("volatile_int_var")
+{
+  check($$name, $arg1, -0x80000000)
+}
+
+probe process(@1).mark("ptr_int_var")
+{
+  check($$name, $arg1, $arg2)
+  check($$name, user_int32($arg1), $arg3)
+  check($$name, $arg3, 0x7fffffff)
+}
+
+probe process(@1).mark("ptr_const_int_var")
+{
+  check($$name, $arg1, $arg2)
+  check($$name, user_int32($arg1), 0x7fffffff)
+}
+
+probe process(@1).mark("int_ptr_const_var")
+{
+  check($$name, $arg1, $arg2)
+  check($$name, user_int32($arg1), 0x7fffffff)
+}
+
+probe process(@1).mark("ptr_volatile_int_var")
+{
+  check($$name, $arg1, $arg2)
+  check($$name, user_int32($arg1), 0x7fffffff)
+}
+
+probe process(@1).mark("int_ptr_volatile_var")
+{
+  check($$name, $arg1, $arg2)
+  check($$name, user_int32($arg1), 0x7fffffff)
+}
+
+probe process(@1).mark("unsigned_int_var")
+{
+  check($$name, $arg1, 0xffff8001)
+  check($$name, $arg2, 0xffff8001)
+  check($$name, user_uint32($arg3), 0xffff8001)
+}
+
+
+/********** long **********/
+
+probe process(@1).mark("long_int_var")
+{
+  check($$name, $arg1, 0x6fffffff)
+}
+
+probe process(@1).mark("const_long_int_var")
+{
+  check($$name, $arg1, -0x6fffffff)
+}
+
+probe process(@1).mark("volatile_long_int_var")
+{
+  check($$name, $arg1, -0x70000000)
+}
+
+probe process(@1).mark("ptr_long_int_var")
+{
+  check($$name, $arg1, $arg2)
+  check($$name, user_long($arg1), 0x6fffffff)
+}
+
+probe process(@1).mark("ptr_const_long_int_var")
+{
+  check($$name, $arg1, $arg2)
+  check($$name, user_long($arg1), 0x6fffffff)
+}
+
+probe process(@1).mark("long_int_ptr_const_var")
+{
+  check($$name, $arg1, $arg2)
+  check($$name, user_long($arg1), 0x6fffffff)
+}
+
+probe process(@1).mark("ptr_volatile_long_int_var")
+{
+  check($$name, $arg1, $arg2)
+  check($$name, user_long($arg1), 0x6fffffff)
+}
+
+probe process(@1).mark("long_int_ptr_volatile_var")
+{
+  check($$name, $arg1, $arg2)
+  check($$name, user_long($arg1), 0x6fffffff)
+}
+
+
+/********** long long **********/
+
+probe process(@1).mark("long_long_int_var") ?
+{
+  check($$name, $arg1, 0x7fffffffffffffff)
+}
+
+probe process(@1).mark("const_long_long_int_var") ?
+{
+  check($$name, $arg1, -0x7fffffffffffffff)
+}
+
+probe process(@1).mark("volatile_long_long_int_var") ?
+{
+  check($$name, $arg1, -0x8000000000000000)
+}
+
+probe process(@1).mark("ptr_long_long_int_var") ?
+{
+  check($$name, $arg1, $arg2)
+  check($$name, user_int64($arg2), $arg3)
+  check($$name, $arg3, 0x7fffffffffffffff)
+}
+
+probe process(@1).mark("ptr_const_long_long_int_var") ?
+{
+  check($$name, $arg1, $arg2)
+  check($$name, user_int64($arg1), 0x7fffffffffffffff)
+}
+
+probe process(@1).mark("long_long_int_ptr_const_var") ?
+{
+  check($$name, $arg1, $arg2)
+  check($$name, user_int64($arg1), 0x7fffffffffffffff)
+}
+
+probe process(@1).mark("ptr_volatile_long_long_int_var") ?
+{
+  check($$name, $arg1, $arg2)
+  check($$name, user_int64($arg1), 0x7fffffffffffffff)
+}
+
+probe process(@1).mark("long_long_int_ptr_volatile_var") ?
+{
+  check($$name, $arg1, $arg2)
+  check($$name, user_int64($arg1), 0x7fffffffffffffff)
+}
+
+probe process(@1).mark("unsigned_long_long_int_var") ?
+{
+  check($$name, $arg1, 0xffffffff80000001)
+  check($$name, $arg2, 0xffffffff80000001)
+  check($$name, user_uint64($arg3), 0xffffffff80000001)
+}
+
+
+/********** misc **********/
+
+probe process(@1).mark("arr_char")
+{
+  check_string($$name, user_string($arg1), "!~")
+}
+
+probe process(@1).mark("arr_struct") ?
+{
+  check($$name, user_int($arg1), 1)
+}
+
+probe process(@1).mark("bitfields_a_var")
+{
+  check($$name, $arg1, 1)
+  check($$name, $arg2, 0)
+  check($$name, $arg3, 97)
+  check($$name, $arg4, 1)
+  check($$name, $arg5, 0)
+  check($$name, $arg6, 122)
+  check($$name, $arg7, 1)
+  check($$name, $arg8, 0)
+}
+
+probe process(@1).mark("bitfields_b_var")
+{
+  check($$name, $arg1, 65)
+  check($$name, $arg2, -1)
+  check($$name, $arg3, 1)
+  check($$name, $arg4, 1)
+  check($$name, $arg5, 3)
+  check($$name, $arg6, 3)
+  check($$name, $arg7, 7)
+  check($$name, $arg8, 255)
+  check($$name, $arg9, 511)
+  check($$name, $arg10, 90)
+}
+
+
+probe process(@1).mark("primary_colors_var") ?
+{
+  check($$name, $arg1, 1)
+}
+
+probe process(@1).mark("constants")
+{
+  check($$name, $arg1, 0x7fffffff)
+  check($$name, $arg2, 0x7e)
+  check_string($$name, user_string($arg3), "constants")
+}
+
+probe process(@1).mark("incomplete_struct_type") ?
+{
+  check($$name, $arg1, 0)
+}
+
+probe process(@1).mark("incomplete_enum_type") ?
+{
+  check($$name, $arg1, 0)
+}

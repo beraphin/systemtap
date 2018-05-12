@@ -1,0 +1,289 @@
+########### Startup Server #############
+# Don't attempt these tests if the client/server are not available or
+# we aren't doing 'make installcheck'
+if {! [installtest_p]} { untested "Server Locale Tests"; return }
+if {! [setup_server]} then {
+    untested "Server Locale Tests"
+    return
+}
+######################################################
+################# General Tests ######################
+######################################################
+
+set valid_script {{probe begin{printf("Hello\n"); exit();}}}
+set french_script {{probe begin{printf("Bonjour\n"); exit();}}}
+set invalid_script {{probe begin{printf("Hello); exit();}}}
+
+###### Embedded '\n' in Environment Variables ########
+# Should not allow embedded '\n' in Environment Variables
+set test "Embedded '\\n' in Env Vars"
+set cmd [concat env \"LANG=en_US\\n.utf8\" stap -e $valid_script $use_server]
+send_log "executing: $cmd\n"
+eval spawn $cmd
+expect {
+	-timeout 150
+        -re {^Server: Localization key=value line [^\r\n]*\r\n} {
+            pass $test
+	}
+	-re {^[^\r\n]*\r\n} {
+            exp_continue
+	}
+        eof { 
+            fail "$test (eof)"
+        }
+	timeout { 
+            kill -INT -[exp_pid] 2
+            fail "$test (timeout)"
+	}
+}
+catch {close}; catch {wait}
+
+
+###### Embedded ';' in Environment Variables ########
+# Should not allow embedded ';' in Environment Variables
+# There are many disallowed chars, but let's just try one
+set test "Embedded ';' in Env Vars"
+set cmd [concat env \"LANG=en_US\;.utf8\" stap -e $valid_script $use_server]
+send_log "executing: $cmd\n"
+eval spawn $cmd
+expect {
+	-timeout 150
+	-re "^Server: Localization value '\[^'\]*' contains illegal characters\r\n" {
+            pass $test
+	}
+	-re {^[^\r\n]*\r\n} {
+            exp_continue
+	}
+        eof { 
+            fail "$test (eof)"
+        }
+	timeout { 
+            kill -INT -[exp_pid] 2
+            fail "$test (timeout)"
+	}
+}
+catch {close}; catch {wait}
+
+
+###### Use of "_.-@=" in Environment Variables ########
+# Should allow "_.-@=" in Environment Variables
+set test "Use of '_.-@=' in Env Vars"
+set cmd [concat env LANG=en_US.utf-8@toronto=test stap -e $valid_script $use_server]
+send_log "executing: $cmd\n"
+eval spawn $cmd
+expect {
+	-timeout 150
+	-re "^Hello\r\n" {
+            pass $test
+	}
+	-re {^[^\r\n]*\r\n} {
+            exp_continue
+	}
+        eof { 
+            fail "$test (eof)"
+        }
+	timeout { 
+            kill -INT -[exp_pid] 2
+            fail "$test (timeout)"
+	}
+}
+catch {close}; catch {wait}
+
+
+
+######################################################
+################### LANG TESTS #######################
+######################################################
+
+########### LANG French Sniff Test ###########
+#
+# Note that on newer versions of Fedora, setting LANG to French isn't
+# enough, you also need the French langpack installed. To do so,
+# you'll need to do (as root):
+#
+#   dnf install langpacks-fr
+#
+# In theory, we could test the system to see if has the French
+# langpacks installed, but in practice the command to do that varies
+# between distros.
+#
+# So, let's test and see if the French locale seems to work. Run stap
+# locally and see if we get French output. If we don't get French
+# output when run locally, we won't get it from the server on this
+# system either.
+
+set test "French LANG Sniff Test"
+set french_supported -1
+set cmd [concat env LANG=fr_FR.utf8 stap -V]
+send_log "executing: $cmd\n"
+eval spawn $cmd
+expect {
+	-timeout 150
+	-re {^options activées :[^\r\n][^\r\n]*\r\n} {
+	    set french_supported 1
+	    pass $test
+	}
+	-re {^enabled features:[^\r\n][^\r\n]*\r\n} {
+	    set french_supported 0
+	    xfail $test
+	}
+	-re {^[^\r\n]*\r\n} {
+	    exp_continue
+	}
+	eof { 
+	    fail "$test (eof)"
+        }
+	timeout { 
+	    kill -INT -[exp_pid] 2
+	    fail "$test (timeout)"
+	}
+}
+catch {close}; catch {wait}
+if {$french_supported == -1} {
+    fail "$test - no expected output seen"
+}
+
+########### LANG Proper Syntax Test (French) ##############
+# Run a basic execution test in French. Should return only "Bonjour".
+set test "LANG Proper Syntax Test (French)"
+set cmd [concat env LANG=fr_FR.utf8 stap -e $french_script $use_server]
+send_log "executing: $cmd\n"
+eval spawn $cmd
+expect {
+	-timeout 150
+	-re "^Bonjour\r\n" {
+            pass $test
+	}
+	-re {^[^\r\n]*\r\n} {
+            exp_continue
+	}
+        eof { 
+            fail "$test (eof)"
+        }
+	timeout { 
+            kill -INT -[exp_pid] 2
+            fail "$test (timeout)"
+	}
+}
+catch {close}; catch {wait}
+
+
+########### LANG Proper Syntax Test (English) #############
+# Run a basic execution test in English. Should return only "Hello".
+set test "LANG Proper Syntax Test (English)"
+set cmd [concat env LANG=en_US.utf8 stap -e $valid_script $use_server]
+send_log "executing: $cmd\n"
+eval spawn $cmd
+expect {
+	-timeout 150
+	-re "^Hello\r\n" {
+            pass $test
+	}
+	-re {^[^\r\n]*\r\n} {
+            exp_continue
+	}
+        eof { 
+            fail "$test (eof)"
+        }
+	timeout { 
+            kill -INT -[exp_pid] 2
+            fail "$test (timeout)"
+	}
+}
+catch {close}; catch {wait}
+
+
+
+########### LANG Bad Syntax Test (French) #############
+# Run an execution test with a syntax error, in French.
+#
+# Note that we can't test for exact output here, since we may not have
+# up to date French translations. So, if we get anything in French, we
+# pass.
+set test "LANG Bad Syntax Test (French)"
+if {$french_supported != 1} {
+    setup_xfail *-*-*
+}
+set cmd [concat env LANG=fr_FR.utf8 stap -e $invalid_script $use_server]
+send_log "executing: $cmd\n"
+eval spawn $cmd
+expect {
+	-timeout 150
+	-re {Ne peut trouver la guillemet} {
+            pass $test
+	}
+	-re {^[^\r\n]*\r\n} {
+		exp_continue
+	}
+        eof { 
+            fail "$test (eof)"
+        }
+	timeout { 
+            kill -INT -[exp_pid] 2
+            fail "$test (timeout)"
+	}
+}
+catch {close}; catch {wait}
+
+
+########### LANG Bad Syntax Test (English) #############
+# Run an execution test with a syntax error, in English.
+set test "LANG Bad Syntax Test (English)"
+set cmd [concat env LANG=en_US.utf8 stap -e $invalid_script $use_server]
+send_log "executing: $cmd\n"
+eval spawn $cmd
+expect {
+	-timeout 150
+	-re {^parse error: Could not find matching closing quote\r\n} {
+		pass $test
+	}
+	-re {^1 parse error\.\r\n} {
+		pass $test
+	}
+	-re {^[^\r\n]*\r\n} {
+		exp_continue
+	}
+        eof { 
+            fail "$test (eof)"
+        }
+	timeout { 
+            kill -INT -[exp_pid] 2
+            fail "$test (timeout)"
+	}
+}
+catch {close}; catch {wait}
+
+
+######################################################
+################ LC_CTYPE Tests ######################
+######################################################
+# NOT YET TESTED - NO APPARENT EFFECT
+
+######################################################
+############### LC_COLLATE Tests #####################
+######################################################
+# NOT YET TESTED - NO APPARENT EFFECT
+
+######################################################
+############## LC_MESSAGES Tests #####################
+######################################################
+# NOT YET TESTED - NO APPARENT EFFECT
+
+######################################################
+################# LC_TIME Tests ######################
+######################################################
+# NOT YET TESTED - NO APPARENT EFFECT
+
+######################################################
+############### LC_MONETARY Tests ####################
+######################################################
+# NOT YET TESTED - NO APPARENT EFFECT
+
+######################################################
+################ LC_NUMERIC Tests ####################
+######################################################
+# NOT YET TESTED - NO APPARENT EFFECT
+
+########### Shutdown Server #############
+# Shudown the server.
+shutdown_server

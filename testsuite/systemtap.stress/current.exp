@@ -1,0 +1,8 @@
+# Simple function to test that systemtap can generate instument a module
+# function, install it, and get some output.
+
+set test "current"
+
+set output_string "(\\w+ = \\d+\r\n){5}(${all_pass_string}){2}(WARNING.*skipped.*)?"
+
+stap_run $test gen_load $output_string -g -w $srcdir/$subdir/$test.stp

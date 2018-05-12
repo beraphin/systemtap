@@ -1,0 +1,190 @@
+function check(name, value, expected)
+{
+  if (value == expected)
+    printf ("sdt_asm PASS: %s\n", name)
+  else
+    printf ("sdt_asm FAIL: %s (%#x != %#x)\n", name, value, expected)
+}
+
+probe process(@1).mark("a") 
+{
+  check("ah", $arg1, 0x30)
+  check("al", $arg2, 0x40)
+  check("ax", $arg3, 0x3040)
+  check("eax", $arg4, 0x10203040)
+}
+
+probe process(@1).mark("rax") ?
+{
+  check("rax", $arg1, 0x1020304010203040)
+}
+
+probe process(@1).mark("b") 
+{
+  check("bh", $arg1, 0x31)
+  check("bl", $arg2, 0x41)
+  check("bx", $arg3, 0x3141)
+  check("ebx", $arg4, 0x11213141)
+}
+
+probe process(@1).mark("rbx") ?
+{
+  check("rbx", $arg1, 0x1121314111213141)
+}
+
+probe process(@1).mark("c") 
+{
+  check("ch", $arg1, 0x32)
+  check("cl", $arg2, 0x42)
+  check("cx", $arg3, 0x3242)
+  check("ecx", $arg4, 0x12223242)
+}
+
+probe process(@1).mark("rcx") ?
+{
+  check("rcx", $arg1, 0x1222324212223242)
+}
+
+probe process(@1).mark("d") 
+{
+  check("dh", $arg1, 0x33)
+  check("dl", $arg2, 0x43)
+  check("dx", $arg3, 0x3343)
+  check("edx", $arg4, 0x13233343)
+}
+
+probe process(@1).mark("rdx") ?
+{
+  check("rdx", $arg1, 0x1323334313233343)
+}
+
+probe process(@1).mark("si") 
+{
+  check("sil", $arg1, 0x44)
+  check("si", $arg2, 0x3444)
+  check("esi", $arg3, 0x14243444)
+}
+
+probe process(@1).mark("rsi") ?
+{
+  check("rsi", $arg1, 0x1424344414243444)
+}
+
+probe process(@1).mark("di") 
+{
+  check("dil", $arg1, 0x45)
+  check("di", $arg2, 0x3545)
+  check("edi", $arg3, 0x15253545)
+}
+
+probe process(@1).mark("rdi") ?
+{
+  check("rdi", $arg1, 0x1525354515253545)
+}
+
+probe process(@1).mark("bp") 
+{
+  check("bp", $arg1, 0x3646)
+  check("ebp", $arg2, 0x16263646)
+}
+
+probe process(@1).mark("rbp") ?
+{
+  check("rbp", $arg1, 0x1626364616263646)
+}
+
+# Dyninst can't deal with the corrupted sp here.
+# (maybe in the future it could use a private stack?)
+%( runtime != "dyninst" %?
+probe process(@1).mark("sp") 
+{
+  check("sp", $arg1, 0x3747)
+  check("esp", $arg2, 0x17273747)
+}
+
+probe process(@1).mark("rsp") ?
+{
+  check("rsp", $arg1, 0x1727374717273747)
+}
+%)
+
+probe process(@1).mark("r8") ?
+{
+  check("r8b", $arg1, 0x48)
+  check("r8w", $arg2, 0x3848)
+  check("r8d", $arg3, 0x18283848)
+  check("r8x", $arg4, 0x1828384818283848)
+}
+
+probe process(@1).mark("r9") ?
+{
+  check("r9b", $arg1, 0x49)
+  check("r9w", $arg2, 0x3949)
+  check("r9d", $arg3, 0x19293949)
+  check("r9x", $arg4, 0x1929394919293949)
+}
+
+probe process(@1).mark("r10") ?
+{
+  check("r10b", $arg1, 0x4a)
+  check("r10w", $arg2, 0x3a4a)
+  check("r10d", $arg3, 0x1a2a3a4a)
+  check("r10x", $arg4, 0x1a2a3a4a1a2a3a4a)
+}
+
+probe process(@1).mark("r11") ?
+{
+  check("r11b", $arg1, 0x4b)
+  check("r11w", $arg2, 0x3b4b)
+  check("r11d", $arg3, 0x1b2b3b4b)
+  check("r11x", $arg4, 0x1b2b3b4b1b2b3b4b)
+}
+
+probe process(@1).mark("r12") ?
+{
+  check("r12b", $arg1, 0x4c)
+  check("r12w", $arg2, 0x3c4c)
+  check("r12d", $arg3, 0x1c2c3c4c)
+  check("r12x", $arg4, 0x1c2c3c4c1c2c3c4c)
+}
+
+probe process(@1).mark("r13") ?
+{
+  check("r13b", $arg1, 0x4d)
+  check("r13w", $arg2, 0x3d4d)
+  check("r13d", $arg3, 0x1d2d3d4d)
+  check("r13x", $arg4, 0x1d2d3d4d1d2d3d4d)
+}
+
+probe process(@1).mark("r14") ?
+{
+  check("r14b", $arg1, 0x4e)
+  check("r14w", $arg2, 0x3e4e)
+  check("r14d", $arg3, 0x1e2e3e4e)
+  check("r14x", $arg4, 0x1e2e3e4e1e2e3e4e)
+}
+
+probe process(@1).mark("r15") ?
+{
+  check("r15b", $arg1, 0x4f)
+  check("r15w", $arg2, 0x3f4f)
+  check("r15d", $arg3, 0x1f2f3f4f)
+  check("r15x", $arg4, 0x1f2f3f4f1f2f3f4f)
+}
+
+probe process(@1).mark("memory") ?
+{
+  check("mem1", $arg1, 7)
+  check("mem2", $arg2, 7)
+  check("mem3", $arg3, 7)
+}
+
+# PR14369: make sure a bad $var doesn't prevent the probes from being found at all
+# Should always pass runtime, as failure is actually in translation
+# NB: as above, excluding sp/rsp for dyninst
+probe %( runtime == "dyninst"
+	  %? process(@1).mark("*[!p]"), process(@1).mark("*[!s]p")
+	  %: process(@1).mark("*") %)
+{
+  check($$name . "@defined", @defined($no_such_var), 0)
+}

@@ -1,0 +1,59 @@
+set test "at_var"
+set testpath "$srcdir/$subdir"
+
+# Test that $var and @var("var") work identically for parameters, variables,
+# for uprobes and kprobes with members, arrays, taking the address and also
+# plays nice when used in combination with @cast and @entry.
+set result_string1 {$argc: 1
+@var("argc"): 1
+user_string($argv[0]): ./at_var
+user_string(@var("argv")[0]): ./at_var
+$foo->bar: 42
+@var("foo")->bar: 42
+}
+
+set result_string2 {$utimes$$: {.tv_sec=1, .tv_usec=2}
+$utimes[1]$$: {.tv_sec=3, .tv_usec=4}
+@var("utimes")$$: {.tv_sec=1, .tv_usec=2}
+@var("utimes")[1]$$: {.tv_sec=3, .tv_usec=4}
+}
+
+set result_string3 {user_int(&$foo->bar): 40
+user_int(&@var("foo")->bar): 40
+&@cast($foo->bar, "struct foo")->bar: 42
+&@cast(@var("foo")->bar, "struct foo")->bar: 42
+$foo->bar == @entry($foo->bar): true
+@var("foo")->bar == @entry(@var("foo")->bar): true}
+
+# s390x machines can't do $utimes$$, since all syscall args are
+# longs. So, we won't test the $utimes$$ stuff.
+if {[istarget s390x-*-*]} {
+    set ::result_string "${result_string1}${result_string3}"
+} else {
+    set ::result_string "${result_string1}${result_string2}${result_string3}"
+}
+
+# Only run on make installcheck and uprobes present.
+if {! [installtest_p]} { untested "$test"; return }
+if {! [uretprobes_p]} { untested "$test"; return }
+
+set res [target_compile ${testpath}/${test}.c ${test} executable "additional_flags=-O2 additional_flags=-g"]
+if { $res != "" } {
+    verbose "target_compile failed: $res" 2
+    fail "${test}: unable to compile ${test}.c"
+} else {
+    stap_run3 $test $srcdir/$subdir/$test.stp -c ./${test} -w
+}
+
+# Test for target program compiled without optimization
+set test_name "${test} (non-optimized)"
+set res [target_compile ${testpath}/${test}.c ${test} executable "additional_flags=-g"]
+if { $res != "" } {
+    verbose "target_compile failed: $res" 2
+    fail "${test_name}: unable to compile ${test}.c"
+} else {
+    stap_run3 $test_name $srcdir/$subdir/$test.stp -c ./${test} -w
+}
+
+# Cleanup
+if { $verbose == 0 } { catch { exec rm -f $test } }

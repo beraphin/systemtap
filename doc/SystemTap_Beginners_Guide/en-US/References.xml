@@ -1,0 +1,127 @@
+<?xml version='1.0'?>
+<!DOCTYPE chapter PUBLIC "-//OASIS//DTD DocBook XML V4.5//EN" "http://www.oasis-open.org/docbook/xml/4.5/docbookx.dtd" [
+]>
+
+<chapter id="references">
+	<title>References</title>
+	<remark>display links to other useful, more advanced systemtap docs - http://sourceware.org/systemtap/documentation.html, http://sourceware.org/systemtap/wiki/HomePage</remark>
+
+<para>
+	This chapter enumerates other references for more information about SystemTap.
+	Refer to these sources in the course of writing advanced probes and tapsets.
+</para>
+
+<variablelist>
+
+<varlistentry>
+	<term>SystemTap Wiki</term>
+<listitem>
+<para>
+	The <citetitle>SystemTap Wiki</citetitle> is a collection of links and articles related to the
+	deployment, usage, and development of SystemTap. You can find it at
+	<ulink url="http://sourceware.org/systemtap/wiki/HomePage"/>.
+</para>
+</listitem>
+</varlistentry>
+
+<varlistentry>
+	<term>SystemTap Tutorial</term>
+<listitem>
+<para>
+	Much of the content in this book comes from the <citetitle>SystemTap Tutorial</citetitle>.
+	The <citetitle>SystemTap Tutorial</citetitle> is a more appropriate reference for
+	users with intermediate to advanced knowledge of C++ and kernel development, and you can find it at
+	<ulink url="http://sourceware.org/systemtap/tutorial/"/>.
+</para>
+</listitem>
+</varlistentry>
+
+<varlistentry>
+	<term>man stapprobes</term>
+<listitem>
+<para>
+The <citerefentry><refentrytitle>stapprobes</refentrytitle><manvolnum>3stap</manvolnum></citerefentry> man page enumerates a variety of probe points supported by SystemTap, along with additional aliases
+defined by the SystemTap tapset library. The bottom part of the man page includes a list of other man pages
+enumerating similar probe points for specific system components, such as
+<filename>tapset::scsi</filename>, <filename>tapset::kprocess</filename>,
+<filename>tapset::signal</filename>, and so on.
+</para>
+</listitem>
+</varlistentry>
+
+<varlistentry>
+	<term>man stapfuncs</term>
+<listitem>
+<para>
+	The <citerefentry><refentrytitle>stapfuncs</refentrytitle><manvolnum>3stap</manvolnum></citerefentry> man page enumerates numerous functions supported by the SystemTap tapset
+	library,  along with the prescribed syntax for each of them. Note, however, that it does not provide a
+	complete list of <emphasis>all</emphasis> supported functions; there are more undocumented
+	functions available.
+</para>
+</listitem>
+</varlistentry>
+
+<varlistentry>
+	<term>SystemTap Tapset Reference Manual</term>
+<listitem>
+<para>
+	The <citetitle>SystemTap Tapset Reference Manual</citetitle>
+	describes the individual predefined functions and probe points of the
+	tapsets in greater detail. You can find it at
+	<ulink url="http://sourceware.org/systemtap/tapsets/"/>.
+</para>
+</listitem>
+</varlistentry>
+
+<varlistentry>
+	<term>SystemTap Language Reference</term>
+<listitem>
+<para>
+	The <citetitle>SystemTap Language Reference</citetitle> is a comprehensive reference of SystemTap's language constructs and syntax. It is
+	recommended for users with a rudimentary to intermediate knowledge of C++ and other similar
+	programming languages, and is available to all
+	users at <ulink url="http://sourceware.org/systemtap/langref/"/>.
+</para>
+</listitem>
+</varlistentry>
+
+<varlistentry>
+	<term>Tapset Developers Guide</term>
+<listitem>
+<para>
+	Once you have sufficient proficiency in writing SystemTap scripts, you can try to write your own tapsets. The <citetitle>Tapset Developers Guide</citetitle> describes how to add functions to your tapset library.
+</para>
+</listitem>
+</varlistentry>
+
+<varlistentry>
+	<term>Test Suite</term>
+<listitem>
+<para>
+	The <package>systemtap-testsuite</package> package allows you to test the entire SystemTap
+	toolchain without having to build it from source code. In addition, it also contains numerous examples of
+	SystemTap scripts to study and test; some of these scripts are also documented in
+	<xref linkend="useful-systemtap-scripts"/>.
+</para>
+
+<para>
+	By default, the example scripts included in <package>systemtap-testsuite</package> are located
+	in the <filename class="directory">/usr/share/systemtap/testsuite/systemtap.examples/</filename> directory.
+</para>
+</listitem>
+</varlistentry>
+
+<!--
+<varlistentry>
+	<term></term>
+<listitem>
+<para>
+</para>
+</listitem>
+</varlistentry>
+-->
+</variablelist>
+
+
+</chapter>
+

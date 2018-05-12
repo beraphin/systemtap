@@ -1,0 +1,207 @@
+set test "Server Tests:"
+
+# The setup_server procedure always uses a "fresh" server log file, so
+# we don't need to create an empty log file that this test used to do.
+global server_logfile
+
+# Don't attempt these tests if the client/server are not available
+if {! [setup_server]} then {
+    untested "Server Tests"
+    return
+}
+
+proc cleanup {} {
+    global tmpdir
+    catch {exec rm -f foo}
+    catch {exec rm -fr $tmpdir}
+    shutdown_server
+}
+
+# Whether the server can communicate with the client is tested in client.exp.
+# Test that the the server can handle particular situations of interest.
+
+#-------------------------------------------------------
+# Building and running a simple module.
+set subtest "simple"
+set rc [stap_run_batch $srcdir/systemtap.server/hello.stp --use-server=$server_spec]
+if {$rc == 0} { pass "$test $subtest" } else { fail "$test $subtest" }
+
+#-------------------------------------------------------
+# Try a "stap -L"
+set subtest "listing"
+set rc [stap_run_batch "" -L "syscall.open" --use-server=$server_spec]
+if {$rc == 0} { pass "$test $subtest" } else { fail "$test $subtest" }
+
+#-------------------------------------------------------
+# Build and run a module using "-I" and "-e SCRIPT".
+set subtest "tapset"
+set rc [stap_run_batch "" -I $srcdir/systemtap.server/tapset -e "probe oneshot { foo() }" --use-server=$server_spec]
+if {$rc == 0} { pass "$test $subtest" } else { fail "$test $subtest" }
+
+#-------------------------------------------------------
+# Building, returning and using the uprobes.ko module.
+set subtest "uprobes"
+if {! [uprobes_p]} then {
+    untested "$test $subtest tests"
+} else {
+    # First compile a test application.
+    catch {exec gcc -g -o foo $srcdir/systemtap.base/jennie.c} err
+    if {$err == "" && [file exists foo]} {
+	pass "$test $subtest compile foo"
+    } else {
+	fail "$test $subtest compile foo"
+    }
+    set foo [exec pwd]/foo
+
+    if {[inode_uprobes_p]} {
+	# Make sure that uprobes.ko is not loaded
+	catch {exec /sbin/rmmod uprobes}
+    }
+
+    # Now use the server to compile the uprobes.stp script
+    set failed 1
+    set tmpdir ""
+    set cmd [concat stap -p4 $srcdir/$subdir/uprobes.stp $use_server -k -c $foo]
+    send_log "executing: $cmd\n"
+    eval spawn $cmd
+    expect {
+	-timeout 150
+	-re {.*Keeping temporary directory \"(.*)\"\r\n} {
+	    set tmpdir "$expect_out(1,string)"
+	    set failed 0
+	}
+	-re {^.*\r\n} { exp_continue }
+	timeout { 
+	    kill -INT -[exp_pid] 2
+	}
+    }
+    catch {close}; catch {wait}
+    if {$failed == 0} {
+	pass "$test $subtest -p4"
+    } else {
+	fail "$test $subtest -p4"
+    }
+
+    # Make sure that the uprobes.ko module was returned.
+    if {"$tmpdir" == "" || [inode_uprobes_p]} {
+	untested "$test $subtest uprobes returned"
+    } else {
+	if {[file exists $tmpdir/server/stap000000/uprobes/uprobes.ko]} {
+	    pass "$test $subtest uprobes returned"
+	} else {
+	    fail "$test $subtest uprobes returned"
+	}
+    }
+
+    if {! [installtest_p]} {
+	untested "$test $subtest -p5";
+	cleanup
+	return
+    }
+
+    # Now do it again, but follow through to phase 5
+
+    if {! [inode_uprobes_p]} {
+	# Make sure that uprobes.ko is not loaded
+	catch {exec /sbin/rmmod uprobes}
+    }
+
+    # Now use the server to compile and run the uprobes.stp script
+    set failed 1
+    set cmd {stap $srcdir/$subdir/uprobes.stp $use_server -c "$foo 1 2 3 4"}
+    send_log "executing: $cmd\n"
+    eval spawn $cmd
+    set ok 0
+    expect {
+	-re {^process[^\r\n]+foo[^\r\n]+main[^\r\n]+arg[cv]=0x[0-9a-f]+\ +arg[cv]=0x[0-9a-f]+\r\n} { incr ok; exp_continue }
+	-re {^process[^\r\n]+foo[^\r\n]+main[^\r\n]+return=0x0\r\n} { incr ok; exp_continue }
+	-re {^[^\r\n]*\r\n} { exp_continue }
+	-timeout 60
+	timeout { }
+	eof { }
+    }
+    catch {close}; catch {wait}
+    if {$ok == 10} {
+	pass "$test $subtest -p5"
+    } else {
+	fail "$test $subtest -p5 ($ok)"
+    }
+}
+
+#-------------------------------------------------------
+# avahi-daemon restart: PR 15872
+# Make sure that the server can survive an avahi-daemon restart and still accept requests
+# via avahi. We can only test this is avahi is available.
+if {$avahi_ok_p != 1} {
+    set dontTest 1
+} else {
+    set dontTest 0
+}
+
+if {$dontTest == 1} {
+    untested "$test $subtest"
+} else {
+    set subtest "server reacts to avahi-daemon restart"
+    # Notice we are using the tcl 'exec' command redirection of
+    # '2>@1', which is equivalent to the shell's '2>&1'.
+    if {[as_root "service avahi-daemon restart 2>@1"]} {
+	# If the avahi daemon didn't restart properly, let's try to
+	# fix it. If the daemon exits improperly, it can leave its pid
+	# file behind which mean it can't be restarted.
+	set pid_file "/run/avahi-daemon/pid"
+	if {[file exists $pid_file]} {
+	    verbose -log "Removing the avahi-daemon pid file"
+	    as_root "rm -f $pid_file"
+
+	    # Try to restart the daemon again.
+	    if {[as_root "service avahi-daemon restart 2>@1"]} {
+		# Could not restart the avahi daemon
+		set dontTest 1
+	    }
+	} else {
+	    # Could not restart the avahi daemon
+	    set dontTest 1
+	}
+    }
+
+    if {$dontTest == 0} {
+	# Give the server time to react
+	catch {exec sleep 1}
+    }
+}
+
+if {$dontTest == 1} {
+    untested "$test $subtest"
+} else {
+    set rc [catch {exec grep "Avahi client failure: Daemon connection failed" $server_logfile} result]
+    if {$rc != 0} {
+	fail "$test $subtest"
+    } else {
+	pass "$test $subtest"
+    }
+}
+
+set subtest "server re-established avahi-daemon connection"
+if {$dontTest == 1} {
+    untested "$test $subtest"
+} else {
+    set rc [catch {exec grep -c {Adding Avahi service .Systemtap Compile Server.*} $server_logfile} result]
+    # Make sure the target line was found more than once.
+    if {$rc != 0 || $result < 2} {
+	fail "$test $subtest"
+    } else {
+	pass "$test $subtest"
+    }
+}
+
+set subtest "server still serves client requests"
+if {$dontTest == 1 || ! [installtest_p]} then {
+    untested "$test $subtest"
+} else {
+    # Contact the server directly, so that we know we're getting the one we want.
+    set rc [stap_run_batch $srcdir/systemtap.server/hello.stp --use-server=$server_spec]
+    if {$rc == 0} { pass "$test $subtest" } else { fail "$test $subtest" }
+}
+
+#-------------------------------------------------------
+cleanup

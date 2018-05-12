@@ -1,0 +1,82 @@
+#! stap -p4
+
+probe begin {
+	print (kernel_string(0))
+	print (kernel_string(0, "error"))
+	print (kernel_string_quoted(0))
+	print (kernel_string_n(0, 1))
+
+	print (kernel_string_utf32(0))
+	print (kernel_string_utf32(0, "error"))
+	print (kernel_string_quoted_utf32(0))
+
+	print (kernel_string_utf16(0))
+	print (kernel_string_utf16(0, "error"))
+	print (kernel_string_quoted_utf16(0))
+
+	print (kernel_long (0))
+	print (kernel_int (0))
+	print (kernel_short (0))
+	print (kernel_char (0))
+	print (kernel_pointer(0))
+
+	print (kernel_buffer_quoted(0, 32))
+	print (kernel_buffer_quoted(0, 32, 32))
+	print (kernel_buffer_quoted_error(0, 32, 32))
+
+	print (user_string(0))
+	print (user_string (0, ""))
+	print (user_string_warn (0))
+	print (user_string_quoted (0))
+
+	print (user_string_n(0, 5))
+	print (user_string_n(0, 5, "foobar"))
+	print (user_string_n_warn(0, 0))
+	print (user_string_n_quoted(0, 0))
+	print (user_string_n_quoted(0, 0, 0))
+	print (user_string_utf32 (0))
+	print (user_string_utf16 (0))
+
+	print (user_char_error(0))
+	print (user_char(0))
+	print (user_char_warn(0))
+
+	print (user_short_error(0))
+	print (user_short(0))
+	print (user_short_warn(0))
+	print (user_ushort_error(0))
+	print (user_ushort(0))
+	print (user_ushort_warn(0))
+
+	print (user_int_error(0))
+	print (user_int(0))
+	print (user_int_warn(0))
+
+	print (user_long_error(0))
+	print (user_long(0))
+	print (user_long_warn(0))
+	print (user_ulong_error(0))
+	print (user_ulong(0))
+	print (user_ulong_warn(0))
+
+	print (user_int8_error(0))
+	print (user_int8(0))
+	print (user_uint8_error(0))
+	print (user_uint8(0))
+
+	print (user_int16_error(0))
+	print (user_int16(0))
+	print (user_uint16_error(0))
+	print (user_uint16(0))
+
+	print (user_int32_error(0))
+	print (user_int32(0))
+	print (user_uint32_error(0))
+	print (user_uint32(0))
+
+	print (user_int64_error(0))
+	print (user_int64(0))
+	print (user_uint64_error(0))
+	print (user_uint64(0))
+}
+

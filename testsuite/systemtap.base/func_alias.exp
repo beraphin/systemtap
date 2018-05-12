@@ -1,0 +1,43 @@
+set test "func_alias"
+
+if {![utrace_p]} { untested $test; return }
+
+proc run {subtest pp} {
+  global test
+  verbose -log "subtest $subtest"
+  verbose -log "Running stap -l $pp"
+  set match 0
+  spawn stap -l $pp
+  expect {
+    timeout { fail "$subtest (timeout)" }
+    -re "never" { untested $subtest }
+    -re "main@.*$test\\.c" {
+      if {$match == 0} { pass $subtest; incr match }
+      exp_continue
+    }
+    eof { if {$match == 0} { fail $subtest } }
+  }
+  catch { close }; catch { wait }
+}
+
+proc run_one_test {flags bits} {
+    global test srcdir subdir
+
+    verbose -log "testing $bits-bit $test"
+    set source "$srcdir/$subdir/$test.c"
+    set target "[pwd]/$test.x$bits"
+    set flags "additional_flags=-g $flags"
+    set res [target_compile $source $target executable $flags]
+    if { $res != "" } {
+      verbose -log "$target failed: $res"
+      untested "$bits-bit $test"
+      return
+    }
+    run "$bits-bit $test direct" "process(\"$target\").function(\"$test\")"
+    run "$bits-bit $test wildcard" "process(\"$target\").function(\"$test*\")"
+    exec rm -f $target
+}
+
+for {set i 0} {$i < [arch_compile_flags]} {incr i} {
+    run_one_test [arch_compile_flag $i] [arch_compile_flag_bits $i]
+}

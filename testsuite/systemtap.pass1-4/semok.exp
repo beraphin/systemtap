@@ -1,0 +1,136 @@
+set self semok
+
+proc dyninst_kfails {test} {
+    global plt_probes_p
+    global effective_uid
+    # Use setup_kfail <pr number> <target triplet> for known bugs.
+    #
+    # (Note that tcl doesn't like comments directly inside the switch
+    # statement, but comments can go in sub-blocks.)
+    switch $test {
+	semok/autocast14.stp -
+	semok/badvar.stp -
+	semok/badvar_undefined.stp -
+	semok/bz10475.stp -
+	semok/context-globals.stp -
+	semok/defined_list_vars.stp -
+	semok/deprecated01.stp -
+	semok/doubleglob.stp -
+	semok/entry01.stp -
+	semok/entry02.stp -
+	semok/entry03.stp -
+	semok/entry04.stp -
+	semok/gurufunc.stp -
+	semok/kretprobe-data.stp -
+	semok/nodwf01.stp -
+	semok/nodwf02.stp -
+	semok/nodwf03.stp -
+	semok/nodwf04.stp -
+	semok/nodwf05.stp -
+	semok/nodwf06.stp -
+	semok/nodwf07.stp -
+	semok/netfilter01.stp -
+	semok/pretty.stp -
+	semok/pretty2.stp -
+	semok/seventeen.stp -
+	semok/target_addr.stp -
+	semok/thirteen.stp -
+	semok/thirtyeight.stp -
+	semok/thirtyfive.stp -
+	semok/thirtyfour.stp -
+	semok/thirtynine.stp -
+	semok/thirtyone.stp -
+	semok/thirtysix.stp -
+	semok/thirtythree.stp -
+	semok/thirtytwo.stp -
+	semok/transko.stp -
+	semok/twelve.stp -
+	semok/twenty.stp -
+	semok/twentyeight.stp -
+	semok/twentyfive.stp -
+	semok/twentyfour.stp -
+	semok/twentynine.stp -
+	semok/twentyseven.stp -
+	semok/umask01.stp -
+	semok/umask02.stp -
+	semok/umask03.stp -
+	semok/umask04.stp -
+	semok/umask05.stp -
+	semok/umask06.stp -
+	semok/umask07.stp {
+	    # Use setup_kfail DYNINST <target triplet> for known
+	    # failures when running with the dyninst runtime (scripts
+	    # that use kernel features or kernel-only tapset
+	    # functions).
+	    setup_kfail DYNINST *-*-*
+	}
+
+	semok/thirtysix-utrace.stp {
+	    # Use setup_kfail 14708 <target triplet> for known
+	    # failures when running with the dyninst runtime (scripts
+	    # that use utrace-like probes)
+	    setup_kfail 14708 *-*-*
+	}
+
+	semok/plt1.stp -
+	semok/plt2.stp {
+	    # Note that this isn't quite right. plt_probes_p really
+	    # checks for kenel-runtime plt probe support, but it is
+	    # close enough for our purposes.
+	    if {!$plt_probes_p} { setup_kfail PLT *-*-* }
+	}
+
+	semok/utrace14.stp {
+	    # Use setup_kfail ROOT_ONLY for tests that must be run as
+	    # root.
+	    #
+	    # In the case of utrace14.stp, it probes pid 1, which only
+	    # root can do.
+	    if {$effective_uid != 0} { setup_kfail ROOT_ONLY *-*-* }
+	}
+    }
+}
+
+set uprobes_p [uprobes_p]
+set utrace_p [utrace_p]
+set plt_probes_p [plt_probes_p]
+set effective_uid [exec /usr/bin/id -u]
+foreach runtime [get_runtime_list] {
+    foreach file [lsort [glob -nocomplain $srcdir/$self/*.stp]] {
+	set test $self/[file tail $file]
+	if {$runtime != ""} {
+	    verbose -log "Running $file ($runtime)"
+	    set rc [stap_run_batch $file --runtime=$runtime]
+	    if {$rc != 0} { ${runtime}_kfails $test }
+	    lappend test "($runtime)"
+	} else {
+	    switch $test {
+		semok/thirtysix-utrace.stp -
+		semok/utrace01.stp {
+		    # These tests need utrace
+		    if {!$utrace_p} { untested $test; continue } }
+		
+		semok/bz11911.stp -
+		semok/mangled.stp -
+		semok/pretty-uprobes.stp {
+		    # These tests need uprobes
+		    if {!$uprobes_p} { untested $test; continue } }
+		
+		semok/plt1.stp -
+		semok/plt2.stp {
+		    if {!$plt_probes_p} { untested $test; continue } }
+
+		semok/utrace14.stp {
+		    # Use setup_kfail ROOT_ONLY for tests that must be run as
+		    # root.
+		    #
+		    # In the case of utrace14.stp, it probes pid 1, which only
+		    # root can do.
+		    if {$effective_uid != 0} { setup_kfail ROOT_ONLY *-*-* } }
+	    }
+	    verbose -log "Running $file"
+	    set rc [stap_run_batch $file]
+	}
+	if {$rc == 0} { pass $test } else { fail $test }
+    }
+}

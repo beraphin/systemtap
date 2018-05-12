@@ -1,0 +1,10 @@
+#! stap -p4
+
+probe begin {
+  println(get_cycles())
+  println(tz_gmtoff())
+  println(tz_name())
+  println(tz_ctime(0))
+  println(jiffies())
+  println(HZ())
+}

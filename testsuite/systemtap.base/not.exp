@@ -1,0 +1,12 @@
+# Simple function to test that systemtap binary not works
+
+set test "not"
+
+foreach runtime [get_runtime_list] {
+    if {$runtime != ""} {
+	stap_run $test no_load $all_pass_string \
+	    --runtime=$runtime $srcdir/$subdir/$test.stp
+    } else {
+	stap_run $test no_load $all_pass_string $srcdir/$subdir/$test.stp
+    }
+}

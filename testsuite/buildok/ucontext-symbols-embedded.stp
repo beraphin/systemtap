@@ -1,0 +1,18 @@
+#! stap -p4
+
+probe begin {
+	log(usymname(0))
+	log(usymdata(0))
+  log(usymfileline(0))
+  log(usymfile(0))
+  log(usymline(0))
+
+	# This is really nonsense.  In real use you'd do something
+	# like:
+	#  print_usyms(ubacktrace())
+	#
+	# On platforms without uprobes, this will fail.  But,
+	# buildok.exp will kfail this test.
+	print_usyms("")
+	log(sprint_usyms(""))
+}

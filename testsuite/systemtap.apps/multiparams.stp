@@ -1,0 +1,9 @@
+probe java("multiparams").class("multiparams").method("printMessage10(Object, String, short, char, boolean, byte, float, double, long, int)")
+{
+  %( systemtap_v >= "3.1" %?
+     printf("%s %s %s %s %s %s %s %s %s %s %s\n", pn(), arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10)
+  %:
+     printf("%s %s %s %d %d %d %d %d %d %d %d\n", pn(), user_string_quoted($arg1), user_string_quoted($arg2), $arg3, $arg4, $arg5, $arg6, $arg7, $arg8, $arg9, $arg10)
+  %)
+  print_java_backtrace()
+}

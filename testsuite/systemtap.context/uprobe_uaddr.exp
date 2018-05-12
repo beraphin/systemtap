@@ -1,0 +1,65 @@
+# Tests uaddr in function call and return probes. For a call probe we
+# expect the address to be in the function; for a return probe it
+# should be in the function's caller.
+
+set test "uprobe_uaddr"
+
+# Only run on make installcheck and uprobes present.
+if {! [installtest_p]} { untested "$test"; return }
+if {! [uretprobes_p]} { untested "$test"; return }
+
+set testpath  "$srcdir/$subdir"
+set testsrc   "$testpath/uprobe_stmt_num.c"
+set testexe   "[pwd]/$test"
+
+# We want debug info and no optimization (every line counts).
+set testflags "additional_flags=-g additional_flags=-O0"
+set teststp   "$testpath/$test.stp"
+
+set res [target_compile $testsrc $testexe executable $testflags]
+if { $res != "" } {
+    verbose "target_compile failed: $res" 2
+    fail "unable to compile $testsrc"
+    return
+}
+
+set cmd [concat stap -c $testexe $teststp]
+send_log "cmd: $cmd\n"
+catch {eval exec $cmd} output
+send_log "cmd output:\n $output\n"
+
+# Only save the address lines.
+set output_lines {}
+foreach line [split $output "\n"] {
+    if {[regexp {0x[0-9]+} $line]} {
+	lappend output_lines "$line"
+    }
+}
+
+set lines [llength $output_lines]
+if { $lines == 6 } {
+    pass "$test"
+} else {
+    fail "$test ($lines)"
+}
+
+set result_funcs [list "main+*" "func+*" "func2+*" "func+*" "main+*"]
+set lnr 0
+foreach expected $result_funcs output $output_lines {
+    if {$expected != ""} {
+        if [string match $expected $output] {
+            pass "$test match line $lnr $expected"
+        } else {
+            fail "$test match line $lnr $expected $output"
+        }
+        incr lnr;
+    } else {
+        break;
+    }
+}
+
+if [string match "main *" [lindex $output_lines 5]] {
+    fail "$test return from main"
+} else {
+    pass "$test return from main"
+}

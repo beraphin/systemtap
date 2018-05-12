@@ -1,0 +1,162 @@
+if {![installtest_p]} { untested "rename_module"; return }
+
+# Script we'll use while testing:
+set script {probe begin{printf("Hello\n");}}
+
+########## Inserting 2 Identical Modules: Basic Stap call #################
+# Should not give an error when inserting 2 identical modules
+set test "Inserting 2 Identical Modules: Basic Stap Call"
+
+if {![installtest_p]} { untested $test; return }
+
+set failed1 1
+set failed2 1
+
+# Run first module. Stays running since no exit() call.
+# Also keep track of its PID, so we can kill it later.
+spawn stap -e $script
+set firstid $spawn_id
+
+# Run second, identical module. Before, it would cause an
+# error, since it would have the same name as the previous
+# one, but now it inserts without a problem, since it is
+# renamed.
+# Note: The outputs must also be the same - they will have 
+# different names to begin with otherwise.
+spawn stap -e $script
+set secondid $spawn_id
+
+# Make sure they both output "Hello"
+expect {
+	-i $firstid Hello {
+		set failed1 0
+		exp_continue
+	} 
+	-i $secondid Hello {
+		set failed2 0
+		exp_continue
+	}
+}
+
+# Kill both of the spawned processes
+catch {kill -INT -[exp_pid -i $firstid] 2}
+catch {close -i $firstid}; catch {wait -i $firstid}
+catch {kill -INT -[exp_pid -i $secondid] 2}
+catch {close -i $secondid}; catch {wait -i $secondid}
+
+if {$failed1 || $failed2} {
+	fail "$test ($failed1, $failed2)"
+} else {
+	pass "$test"
+}
+
+
+########## Compile test module #################
+# Compile the module we'll be using for the rest of the tests (which
+# is actually already compiled, but we need the filename of the cached
+# module).
+set test "test module"
+if {[catch { exec stap -e $script -p4 } module]} {
+    verbose -log "$module"
+    fail "$test - compile problem"
+    return
+} elseif {![file exists $module]} {
+    verbose -log "$module"
+    fail "$test - file exist problem"
+    return
+} else {
+    pass "$test compiles"
+}
+
+
+########## Inserting 2 Identical Modules: Staprun without -R #################
+# Should give an error when inserting 2 identical modules 
+# when calling staprun directly without using -R
+set test "Inserting 2 Identical Modules: Staprun without -R"
+set failed1 1
+set failed2 0
+
+spawn staprun $module
+set firstid $spawn_id
+
+# Make sure the first staprun works
+expect {
+	-i $firstid Hello {
+		set failed1 0
+		exp_continue
+	} 
+}
+
+spawn staprun $module
+set secondid $spawn_id
+
+# Make sure the second staprun fails
+expect {
+	-timeout 60
+	-re {^ERROR: Couldn't insert module .*: File exists\r\n} {
+		exp_continue
+	}
+	-re {^ERROR: Rerun with staprun option '\-R' to rename this module.\r\n} {
+		exp_continue
+	}
+	-re {^[^\r\n]*\r\n} {
+		set failed2 1		
+		exp_continue
+	}
+	timeout { set failed2 1 }
+}
+
+# Kill both of the spawned processes
+catch {kill -INT -[exp_pid -i $firstid] 2}
+catch {close -i $firstid}; catch {wait -i $firstid}
+catch {kill -INT -[exp_pid -i $secondid] 2}
+catch {close -i $secondid}; catch {wait -i $secondid}
+
+if {$failed1 || $failed2} {
+	verbose -log "$failed1, $failed2"
+	# On failure, don't leave any modules behind.
+	catch {exec staprun -d $module}
+	fail "$test ($failed1, $failed2)"
+} else {
+	pass "$test"
+}
+
+
+########## Inserting 2 Identical Modules: Staprun with -R #################
+# Should not give an error when inserting 2 identical modules
+# when calling staprun directly with -R
+set test "Inserting 2 Identical Modules: Staprun with -R"
+set failed1 1
+set failed2 1
+
+spawn staprun -R $module
+set firstid $spawn_id
+
+spawn staprun -R $module
+set secondid $spawn_id
+
+# Make sure they both output "Hello"
+expect {
+	-i $firstid Hello {
+		set failed1 0
+		exp_continue
+	} 
+	-i $secondid Hello {
+		set failed2 0
+		exp_continue
+	}
+}
+
+# Kill both of the spawned processes
+catch {kill -INT -[exp_pid -i $firstid] 2}
+catch {close -i $firstid}; catch {wait -i $firstid}
+catch {kill -INT -[exp_pid -i $secondid] 2}
+catch {close -i $secondid}; catch {wait -i $secondid}
+
+if {$failed1 || $failed2} {
+	# On failure, don't leave any modules behind.
+	catch {exec staprun -d $module}
+	fail "$test ($failed1, $failed2)"
+} else {
+	pass "$test"
+}
